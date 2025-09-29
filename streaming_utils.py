@@ -7,10 +7,11 @@
 """
 from typing import Iterator, Tuple
 from rag_core import check_guardrail
+from config_loader import CONFIG
 
-# --- 상수 정의 ---
-INITIAL_BUFFER_SIZE = 50     # 빠른 첫 응답을 위한 초기 버퍼 크기 (문자 수)
-SUBSEQUENT_BUFFER_SIZE = 200 # 효율성을 위한 후속 버퍼 크기
+# --- config.yaml에서 버퍼 크기 설정 읽기 ---
+INITIAL_BUFFER_SIZE = CONFIG["initial_buffer_size"]         # 빠른 첫 응답을 위한 초기 버퍼 크기 (문자 수)
+SUBSEQUENT_BUFFER_SIZE = CONFIG["subsequent_buffer_size"]   # 효율성을 위한 후속 버퍼 크기
 
 def stream_and_filter_response(llm_stream: Iterator) -> Iterator[Tuple[str, str]]:
     """

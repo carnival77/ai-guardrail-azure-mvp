@@ -7,3 +7,4 @@ azure-identity
 streamlit
 langchain-community
 langchain-core
+PyYAML

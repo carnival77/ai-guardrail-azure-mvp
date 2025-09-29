@@ -1,0 +1,20 @@
+# KB 국민은행 AI 가드레일 시스템 설정
+# 비민감 정보만 포함 (민감 정보는 .env 파일 또는 Azure App Settings 사용)
+
+# Azure OpenAI 모델 배포 이름
+azure_openai_chat_deployment_name: "GPT-4.1"
+azure_openai_embedding_deployment_name: "text-embedding-3-small"
+azure_openai_api_version: "2024-12-01-preview"
+
+# Azure AI Search 설정
+azure_search_index_name: "bank-financial-policy-index-2"
+# azure_skillset_name: "bank-financial-policy-skillset"
+
+# 동적 버퍼 설정
+initial_buffer_size: 50
+subsequent_buffer_size: 200
+
+# LLM 설정
+llm_temperature: 0  # 일관성 있는 판단을 위해 0으로 설정
+llm_max_retries: 3
+llm_timeout: 30

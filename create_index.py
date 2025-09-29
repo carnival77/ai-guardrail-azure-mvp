@@ -14,13 +14,14 @@ from azure.search.documents.indexes.models import (
     VectorSearchProfile,
 )
 from dotenv import load_dotenv
+from config_loader import CONFIG
 
 # --- 1. 필수 정보 로드 ---
 load_dotenv()
 
 search_endpoint: str = os.getenv("AZURE_SEARCH_ENDPOINT")
 search_api_key: str = os.getenv("AZURE_SEARCH_API_KEY")
-index_name: str = os.getenv("AZURE_SEARCH_INDEX_NAME")
+index_name: str = CONFIG["azure_search_index_name"]
 
 if not all([search_endpoint, search_api_key, index_name]):
     raise ValueError("환경변수가 올바르게 설정되지 않았습니다. .env 파일을 확인해주세요.")
