@@ -10,6 +10,11 @@ azure_openai_api_version: "2024-12-01-preview"
 azure_search_index_name: "bank-financial-policy-index-2"
 # azure_skillset_name: "bank-financial-policy-skillset"
 
+# Azure Blob Storage 설정 (RAG 소스 파일용)
+blob_storage_container_name: "container"
+rag_source_directory: "RAG_source"
+blob_storage_policy_path: "policy"  # Blob 내 정책 파일 경로
+
 # 동적 버퍼 설정
 initial_buffer_size: 50
 subsequent_buffer_size: 200
