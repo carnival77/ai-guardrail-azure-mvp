@@ -9,27 +9,31 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 from langchain_community.vectorstores import AzureSearch
+from config_loader import CONFIG
 
 # --- 1. 환경 설정 및 Azure 서비스 클라이언트 초기화 ---
 load_dotenv()
 
-# Azure OpenAI 클라이언트 초기화 (LLM 및 임베딩 모델)
+# 민감 정보는 환경 변수에서, 비민감 설정은 config에서 가져오기
 openai.api_type = os.getenv("AZURE_OPENAI_API_TYPE", "azure")
 openai.azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-openai.api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-12-01-preview")
+openai.api_version = CONFIG["azure_openai_api_version"]
 openai.api_key = os.getenv("AZURE_OPENAI_API_KEY")
-openai.azure_deployment = os.getenv("AZURE_OPENAI_CHAT_DEPLOYMENT_NAME", "gpt-4.1")
-openai.azure_embedding_deployment = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME", "text-embedding-3-small")
+openai.azure_deployment = CONFIG["azure_openai_chat_deployment_name"]
+openai.azure_embedding_deployment = CONFIG["azure_openai_embedding_deployment_name"]
 openai.azure_search_endpoint = os.getenv("AZURE_SEARCH_ENDPOINT")
 openai.azure_search_key = os.getenv("AZURE_SEARCH_API_KEY")
-openai.azure_search_index_name = os.getenv("AZURE_SEARCH_INDEX_NAME")
+openai.azure_search_index_name = CONFIG["azure_search_index_name"]
 
-llm=AzureChatOpenAI(
-        azure_endpoint=openai.azure_endpoint,
-        api_key=openai.api_key,
-        api_version=openai.api_version,
-        azure_deployment=openai.azure_deployment,
-        temperature=0,
+# Azure OpenAI 클라이언트 초기화
+llm = AzureChatOpenAI(
+    azure_endpoint=openai.azure_endpoint,
+    api_key=openai.api_key,
+    api_version=openai.api_version,
+    azure_deployment=openai.azure_deployment,
+    temperature=CONFIG["llm_temperature"],
+    max_retries=CONFIG["llm_max_retries"],
+    timeout=CONFIG["llm_timeout"],
 )
 
 embeddings = AzureOpenAIEmbeddings(
