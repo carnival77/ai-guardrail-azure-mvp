@@ -1,4 +1,8 @@
 import os
+import sys
+
+# 프로젝트 루트를 Python 경로에 추가
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from azure.core.credentials import AzureKeyCredential
 from azure.search.documents.indexes import SearchSkillsetClient
@@ -14,7 +18,7 @@ from azure.search.documents.indexes.models import (
     EntityCategory,
 )
 from dotenv import load_dotenv
-from config_loader import CONFIG
+from config.config_loader import CONFIG
 
 # --- 1. 필수 정보 로드 ---
 load_dotenv()
