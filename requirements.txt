@@ -4,5 +4,6 @@ azure-search-documents
 python-dotenv
 openai
 azure-identity
+streamlit
 langchain-community
 langchain-core
