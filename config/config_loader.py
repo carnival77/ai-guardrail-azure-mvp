@@ -51,10 +51,14 @@ def get_config_value(key: str, default: Any = None) -> Any:
 
 # 전역 설정 로드 (모듈 import 시 실행)
 try:
-    CONFIG = load_config()
+    # __file__은 현재 파일(config_loader.py)의 경로를 나타냅니다.
+    # os.path.dirname()으로 현재 파일이 있는 디렉터리 경로를 얻고,
+    # os.path.join()으로 'config.yaml' 파일의 절대 경로를 만듭니다.
+    config_file_path = os.path.join(os.path.dirname(__file__), "config.yaml")
+    CONFIG = load_config(config_file_path)
 except (FileNotFoundError, yaml.YAMLError) as e:
     print(f"경고: 설정 파일 로드 실패 - {e}")
-    # 기본값으로 fallback
+    # 설정 파일이 없어도 기본값으로 동작하도록 fallback 설정
     CONFIG = {
         "azure_openai_chat_deployment_name": "GPT-4.1",
         "azure_openai_embedding_deployment_name": "text-embedding-3-small",

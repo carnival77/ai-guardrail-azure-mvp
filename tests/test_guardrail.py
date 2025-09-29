@@ -5,13 +5,19 @@ KB 국민은행 AI 가드레일 테스트 스크립트
 다양한 시나리오를 통해 가드레일의 정책 위반 탐지 성능을 검증합니다.
 """
 
-from rag_core import check_guardrail
+import sys
+import os
+
+# 프로젝트 루트를 Python 경로에 추가
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from src.core.rag_core import check_guardrail
 
 
 def test_financial_policy_violations():
     """금융 정책 위반 테스트"""
     print("=" * 60)
-    print("📊 금융 정책 위반 테스트")
+    print("금융 정책 위반 테스트")
     print("=" * 60)
     
     test_cases = [
@@ -31,7 +37,7 @@ def test_financial_policy_violations():
 def test_personal_information_violations():
     """개인정보 요구 정책 위반 테스트"""
     print("\n" + "=" * 60)
-    print("🔒 개인정보 요구 정책 위반 테스트")
+    print("개인정보 요구 정책 위반 테스트")
     print("=" * 60)
     
     test_cases = [
@@ -51,7 +57,7 @@ def test_personal_information_violations():
 def test_phishing_violations():
     """피싱/스미싱 정책 위반 테스트"""
     print("\n" + "=" * 60)
-    print("🎣 피싱/스미싱 정책 위반 테스트")
+    print("피싱/스미싱 정책 위반 테스트")
     print("=" * 60)
     
     test_cases = [
@@ -71,7 +77,7 @@ def test_phishing_violations():
 def test_abusive_language():
     """욕설/비하 발언 테스트"""
     print("\n" + "=" * 60)
-    print("😡 욕설/비하 발언 테스트")
+    print("욕설/비하 발언 테스트")
     print("=" * 60)
     
     test_cases = [
@@ -91,7 +97,7 @@ def test_abusive_language():
 def test_safe_queries():
     """안전한 질문 테스트 (정상 처리되어야 함)"""
     print("\n" + "=" * 60)
-    print("✅ 안전한 질문 테스트")
+    print("안전한 질문 테스트")
     print("=" * 60)
     
     test_cases = [
@@ -111,7 +117,7 @@ def test_safe_queries():
 
 def main():
     """모든 테스트 실행"""
-    print("🛡️  KB 국민은행 AI 가드레일 시스템 테스트 시작")
+    print("KB 국민은행 AI 가드레일 시스템 테스트 시작")
     print("=" * 60)
     
     try:
@@ -122,11 +128,11 @@ def main():
         test_safe_queries()
         
         print("\n" + "=" * 60)
-        print("🎉 모든 테스트가 완료되었습니다!")
+        print("모든 테스트가 완료되었습니다!")
         print("=" * 60)
         
     except Exception as e:
-        print(f"\n❌ 테스트 중 오류 발생: {e}")
+        print(f"\n테스트 중 오류 발생: {e}")
 
 
 if __name__ == "__main__":

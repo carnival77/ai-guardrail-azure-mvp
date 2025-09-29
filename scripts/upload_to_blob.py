@@ -5,13 +5,17 @@ from __future__ import annotations
 import argparse
 import hashlib
 import os
+import sys
 from pathlib import Path
 from typing import Iterable
+
+# 프로젝트 루트를 Python 경로에 추가
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from azure.storage.blob import BlobClient, BlobServiceClient
 from dotenv import load_dotenv
 
-from config_loader import CONFIG
+from config.config_loader import CONFIG
 
 
 def iter_source_files(root_dir: str) -> Iterable[Path]:

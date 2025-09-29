@@ -9,7 +9,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
 from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 from langchain_community.vectorstores import AzureSearch
-from config_loader import CONFIG
+from config.config_loader import CONFIG
 
 # --- 1. 환경 설정 및 Azure 서비스 클라이언트 초기화 ---
 load_dotenv()

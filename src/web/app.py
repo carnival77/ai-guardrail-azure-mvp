@@ -6,8 +6,8 @@
 """
 
 import streamlit as st
-from rag_core import check_guardrail, llm
-from streaming_utils import stream_and_filter_response
+from src.core.rag_core import check_guardrail, llm
+from src.utils.streaming_utils import stream_and_filter_response
 
 
 def main():

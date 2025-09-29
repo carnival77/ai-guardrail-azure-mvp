@@ -6,8 +6,8 @@
 '동적 버퍼' 패턴을 구현합니다.
 """
 from typing import Iterator, Tuple
-from rag_core import check_guardrail
-from config_loader import CONFIG
+from src.core.rag_core import check_guardrail
+from config.config_loader import CONFIG
 
 # --- config.yaml에서 버퍼 크기 설정 읽기 ---
 INITIAL_BUFFER_SIZE = CONFIG["initial_buffer_size"]         # 빠른 첫 응답을 위한 초기 버퍼 크기 (문자 수)
