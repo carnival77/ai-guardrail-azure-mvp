@@ -208,8 +208,12 @@ def check_guardrail(text_to_evaluate: str) -> Dict[str, Any]:
         response_json["source_documents"] = limited_context["documents"]
         
         # [DEBUG] LLM이 반환한 source_files 확인
-        print(f"[DEBUG] LLM source_files: {response_json.get('source_files', [])}")
-        print(f"[DEBUG] Retrieved doc names: {[doc.metadata.get('metadata_storage_name', 'N/A') for doc in limited_context['documents']]}")
+        # print(f"[DEBUG rag_core] LLM source_files: {response_json.get('source_files', [])}")
+        # print(f"[DEBUG rag_core] Retrieved doc count: {len(limited_context['documents'])}")
+        # for idx, doc in enumerate(limited_context['documents']):
+        #     print(f"[DEBUG rag_core] Doc {idx}: metadata_storage_name = {doc.metadata.get('metadata_storage_name', 'N/A')}")
+        #     print(f"[DEBUG rag_core] Doc {idx}: metadata_storage_path = {doc.metadata.get('metadata_storage_path', 'N/A')[:100]}...")
+        #     print(f"[DEBUG rag_core] Doc {idx}: content preview = {doc.page_content[:100]}...")
         
         return response_json
     

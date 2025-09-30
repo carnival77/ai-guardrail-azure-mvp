@@ -31,6 +31,9 @@ def format_source_documents(documents: list, source_files_filter: list = None) -
     formatted_docs = []
     unique_documents = {doc.metadata.get("metadata_storage_path"): doc for doc in documents}.values()
 
+    # 매칭 실패 시 폴백 표시를 위해 플래그 유지
+    matched_any = False
+
     for doc in unique_documents:
         file_name = "출처 불명"  # 기본값
         raw_path_for_debug = ""
@@ -71,30 +74,56 @@ def format_source_documents(documents: list, source_files_filter: list = None) -
         
         # LLM이 사용한 파일이 명시된 경우(source_files_filter가 비어있지 않은 경우)에만 필터링 수행
         if source_files_filter:
+            # [DEBUG] 필터링 전 정보 출력
+            # print(f"[DEBUG app.py] Checking file: {file_name}")
+            # print(f"[DEBUG app.py] Filter list: {source_files_filter}")
+            
             file_name_base, _ = os.path.splitext(file_name)
             
-            # 더 강력한 매칭: 핵심 키워드 기반 비교
-            def extract_keywords(text):
-                """파일명에서 핵심 키워드를 추출 (공백, 특수문자, 확장자 제거)"""
+            # 파일명 정규화 함수 (공백 유지, 괄호/특수문자 정리)
+            def normalize_filename(text: str) -> str:
                 import re
-                # 괄호와 내용 제거, 공백과 특수문자 제거, 소문자 변환
-                cleaned = re.sub(r'\([^)]*\)', '', text)  # (2023. 9.) 같은 부분 제거
-                cleaned = re.sub(r'[^\w가-힣]', '', cleaned)  # 특수문자와 공백 제거
-                return cleaned.lower()
+                text = re.sub(r'\([^)]*\)', '', text)  # 괄호 내용 제거
+                text = os.path.splitext(text)[0]        # 확장자 제거
+                text = re.sub(r'\s+', ' ', text).strip().lower()  # 다중 공백 정리 + 소문자
+                text = re.sub(r'[^0-9a-zA-Z가-힣 ]', '', text)      # 불필요 특수문자 제거 (공백 유지)
+                return text
             
-            file_keywords = extract_keywords(file_name_base)
+            def token_sets(a: str, b: str):
+                sa = set(a.split())
+                sb = set(b.split())
+                return sa, sb
             
-            is_cited = any(
-                extract_keywords(cited_file) in file_keywords or 
-                file_keywords in extract_keywords(cited_file)
-                for cited_file in source_files_filter
-            )
+            def token_jaccard(a: str, b: str) -> float:
+                sa, sb = token_sets(a, b)
+                if not sa or not sb:
+                    return 0.0
+                return len(sa & sb) / max(1, len(sa | sb))
+            
+            from difflib import SequenceMatcher
+            norm_file = normalize_filename(file_name_base)
+            scores = []
+            overlaps = []
+            for cited in source_files_filter:
+                norm_cited = normalize_filename(cited)
+                sim = SequenceMatcher(None, norm_file, norm_cited).ratio()
+                jac = token_jaccard(norm_file, norm_cited)
+                sa, sb = token_sets(norm_file, norm_cited)
+                overlap_cnt = len(sa & sb)
+                scores.append(max(sim, jac))
+                overlaps.append(overlap_cnt)
+            
+            # 임계값 0.35 또는 최소 1개 토큰 교집합 시 매칭 성사
+            is_cited = any(score >= 0.35 or ov >= 1 for score, ov in zip(scores, overlaps))
+            
+            # 디버깅 로그
+            print(f"[DEBUG app.py] norm_file='{norm_file}', norm_cited={[normalize_filename(c) for c in source_files_filter]}, scores={scores}, overlaps={overlaps}, match={is_cited}")
             
             # LLM이 인용한 문서가 아니면 건너뜀
             if not is_cited:
                 continue
         
-        # 필터링을 통과했거나, 필터링이 필요 없는 경우(LLM이 source_files를 비워서 보낸 경우) 문서 표시
+        # 필터를 통과했거나, 필터가 없을 때 문서 표시
         full_content = doc.page_content.replace(chr(10), ' ').strip()
         preview = full_content[:250] + "..." if len(full_content) > 250 else full_content
         
@@ -103,6 +132,31 @@ def format_source_documents(documents: list, source_files_filter: list = None) -
             "preview": preview,
             "full_content": full_content
         })
+        
+        if source_files_filter:
+            matched_any = True
+
+    # 폴백: 인용된 이름이 아무 것도 매칭되지 않으면 전체 검색 문서 표시
+    if source_files_filter and not matched_any:
+        print("[DEBUG app.py] No documents matched cited names. Falling back to show all retrieved documents.")
+        formatted_docs = []
+        for doc in {doc.metadata.get("metadata_storage_path"): doc for doc in documents}.values():
+            display_name = doc.metadata.get("metadata_storage_name") or os.path.basename(
+                urllib.parse.unquote(
+                    urllib.parse.urlparse(
+                        base64.b64decode(doc.metadata.get("metadata_storage_path", "").replace('-', '+').replace('_', '/').ljust(((len(doc.metadata.get("metadata_storage_path", "")) + 3) // 4) * 4, '=')).decode('utf-8')
+                    ).path
+                )
+            ) if doc.metadata.get("metadata_storage_path") and not doc.metadata.get("metadata_storage_path", "").startswith(('http://', 'https://')) else (
+                doc.metadata.get("metadata_storage_name") or os.path.basename(urllib.parse.unquote(urllib.parse.urlparse(doc.metadata.get("metadata_storage_path", "")).path))
+            )
+            full_content = doc.page_content.replace(chr(10), ' ').strip()
+            preview = full_content[:250] + "..." if len(full_content) > 250 else full_content
+            formatted_docs.append({
+                "file_name": display_name or "출처 불명",
+                "preview": preview,
+                "full_content": full_content
+            })
 
     return formatted_docs
 
@@ -160,8 +214,7 @@ def main():
                             encoding='utf-8'
                         )
                         st.sidebar.success("✅ 동기화 완료!")
-                        with st.sidebar.expander("동기화 로그 보기"):
-                            st.code(result.stdout)
+                        # 동기화 로그 보기 기능 제거
                     except subprocess.CalledProcessError as e:
                         st.sidebar.error("❌ 동기화 실패.")
                         with st.sidebar.expander("오류 로그 보기"):
