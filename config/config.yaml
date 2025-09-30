@@ -7,7 +7,7 @@ azure_openai_embedding_deployment_name: "text-embedding-3-small"
 azure_openai_api_version: "2024-12-01-preview"
 
 # Azure AI Search 설정
-azure_search_index_name: "bank-financial-policy-index-3"
+azure_search_index_name: "bank-financial-policy-index-5"
 azure_skillset_name: "bank-financial-policy-skillset"
 azure_skillset_definition_path: "config/skillset_definition.json" # 스킬셋 JSON 정의 파일 경로
 
@@ -24,3 +24,7 @@ subsequent_buffer_size: 200
 llm_temperature: 0  # 일관성 있는 판단을 위해 0으로 설정
 llm_max_retries: 3
 llm_timeout: 30
+
+# RAG 성능 최적화 설정
+rag_top_k: 3  # 검색할 문서 수 (top-k)
+rag_max_context_tokens: 2000  # 컨텍스트 윈도우 최대 토큰 수

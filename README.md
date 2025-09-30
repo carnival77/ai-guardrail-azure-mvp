@@ -81,3 +81,9 @@ AZURE_SEARCH_ENDPOINT=your_search_endpoint
 AZURE_SEARCH_API_KEY=your_search_key
 AZURE_STORAGE_CONNECTION_STRING=your_storage_connection
 ```
+
+## 📁 RAG 소스 파일 관리
+
+- `RAG_source/`: 로컬에서 원본 정책 파일(PDF, TXT)을 보관합니다.
+- `scripts/upload_to_blob.py`: PDF에서 텍스트를 추출하여 Azure Blob Storage에 `.txt`로 업로드합니다.
+- **실제 RAG 검색**: Azure AI Search가 Blob Storage의 텍스트 파일을 인덱싱하여 사용합니다.
