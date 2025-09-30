@@ -1,4 +1,4 @@
-# KB 국민은행 AI 가드레일 시스템 설정
+# 기업용 AI 가드레일 시스템 설정
 # 비민감 정보만 포함 (민감 정보는 .env 파일 또는 Azure App Settings 사용)
 
 # Azure OpenAI 모델 배포 이름
@@ -8,7 +8,8 @@ azure_openai_api_version: "2024-12-01-preview"
 
 # Azure AI Search 설정
 azure_search_index_name: "bank-financial-policy-index-2"
-# azure_skillset_name: "bank-financial-policy-skillset"
+azure_skillset_name: "bank-financial-policy-skillset"
+azure_skillset_definition_path: "config/skillset_definition.json" # 스킬셋 JSON 정의 파일 경로
 
 # Azure Blob Storage 설정 (RAG 소스 파일용)
 blob_storage_container_name: "container"

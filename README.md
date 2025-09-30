@@ -1,4 +1,4 @@
-# 🛡️ KB 국민은행 AI 가드레일 시스템
+# 🛡️ 기업용 AI 가드레일 시스템
 
 Azure OpenAI와 Azure AI Search를 활용한 금융 정책 기반 AI 가드레일 MVP 시스템
 

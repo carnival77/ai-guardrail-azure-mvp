@@ -1,5 +1,5 @@
 """
-KB 국민은행 AI 가드레일 시스템 - 메인 실행 파일
+기업용 AI 가드레일 시스템 - 메인 실행 파일
 
 이 파일은 프로젝트의 다양한 기능을 실행할 수 있는 통합 진입점입니다.
 """
@@ -14,7 +14,7 @@ sys.path.insert(0, PROJECT_ROOT)
 
 def run_streamlit_app():
     """Streamlit 웹 애플리케이션을 실행합니다."""
-    print("KB 국민은행 AI 가드레일 애플리케이션을 시작합니다...")
+    print("기업용 AI 가드레일 애플리케이션을 시작합니다...")
     # Streamlit 앱은 src/web/app.py에 있습니다.
     # Azure App Service의 시작 명령과 동일하게 설정
     command = [
@@ -51,7 +51,7 @@ def create_ai_search_skillset():
     subprocess.run(command)
 
 if __name__ == "__main__":
-    print("KB 국민은행 AI 가드레일 프로젝트 메인 진입점")
+    print("기업용 AI 가드레일 프로젝트 메인 진입점")
     print("사용 가능한 명령어:")
     print("  - app: Streamlit 웹 애플리케이션 실행")
     print("  - test: 가드레일 테스트 실행")
