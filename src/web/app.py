@@ -15,17 +15,20 @@ from src.core.rag_core import check_guardrail, llm
 from src.utils.streaming_utils import stream_and_filter_response
 from config.config_loader import CONFIG
 
-def format_source_documents(documents: list, source_files_filter: list = None) -> str:
+def format_source_documents(documents: list, source_files_filter: list = None) -> list:
     """RAG의 근거 문서를 Streamlit에 표시하기 좋게 포맷합니다.
     
     Args:
         documents: 검색된 문서 리스트
         source_files_filter: LLM이 실제로 사용한 파일명 리스트 (선택적)
+    
+    Returns:
+        포맷된 문서 정보 리스트 (각 항목은 {"file_name": str, "preview": str, "full_content": str} 딕셔너리)
     """
     if not documents:
-        return "검색된 근거 문서가 없습니다."
+        return []
 
-    formatted_strings = []
+    formatted_docs = []
     unique_documents = {doc.metadata.get("metadata_storage_path"): doc for doc in documents}.values()
 
     for doc in unique_documents:
@@ -66,16 +69,42 @@ def format_source_documents(documents: list, source_files_filter: list = None) -
             else:
                 file_name = "메타데이터 없음"
         
-        # 필터가 제공된 경우, 실제로 사용된 파일만 표시
-        if source_files_filter is not None:
-            if file_name not in source_files_filter:
-                continue  # 이 문서는 LLM이 사용하지 않았으므로 건너뜀
+        # LLM이 사용한 파일이 명시된 경우(source_files_filter가 비어있지 않은 경우)에만 필터링 수행
+        if source_files_filter:
+            file_name_base, _ = os.path.splitext(file_name)
+            
+            # 더 강력한 매칭: 핵심 키워드 기반 비교
+            def extract_keywords(text):
+                """파일명에서 핵심 키워드를 추출 (공백, 특수문자, 확장자 제거)"""
+                import re
+                # 괄호와 내용 제거, 공백과 특수문자 제거, 소문자 변환
+                cleaned = re.sub(r'\([^)]*\)', '', text)  # (2023. 9.) 같은 부분 제거
+                cleaned = re.sub(r'[^\w가-힣]', '', cleaned)  # 특수문자와 공백 제거
+                return cleaned.lower()
+            
+            file_keywords = extract_keywords(file_name_base)
+            
+            is_cited = any(
+                extract_keywords(cited_file) in file_keywords or 
+                file_keywords in extract_keywords(cited_file)
+                for cited_file in source_files_filter
+            )
+            
+            # LLM이 인용한 문서가 아니면 건너뜀
+            if not is_cited:
+                continue
         
-        content = doc.page_content.replace(chr(10), ' ').strip()
+        # 필터링을 통과했거나, 필터링이 필요 없는 경우(LLM이 source_files를 비워서 보낸 경우) 문서 표시
+        full_content = doc.page_content.replace(chr(10), ' ').strip()
+        preview = full_content[:250] + "..." if len(full_content) > 250 else full_content
         
-        formatted_strings.append(f"**- 문서: `{file_name}`**\n> {content}")
+        formatted_docs.append({
+            "file_name": file_name,
+            "preview": preview,
+            "full_content": full_content
+        })
 
-    return "\n\n".join(formatted_strings) if formatted_strings else "LLM이 사용한 문서를 찾을 수 없습니다."
+    return formatted_docs
 
 
 def main():
@@ -92,6 +121,13 @@ def main():
     st.caption("안전하고 신뢰할 수 있는 AI 금융 상담 서비스")
 
     with st.sidebar:
+        st.header("⚙️ 설정")
+        
+        # 진단 정보 표시 옵션 추가
+        show_diagnostics = st.checkbox("🔍 진단 정보 표시", value=False, help="가드레일 판단 근거와 성능 정보를 표시합니다")
+        
+        st.divider()
+        
         st.header("🔒 보안 정책 관리")
         
         uploaded_files = st.file_uploader(
@@ -183,14 +219,25 @@ def main():
         st.write("🔍 **입력 검사 중...**")
         input_check = check_guardrail(user_input)
 
-        # 진단 정보 패널 수정
-        with st.expander("🛡️ 입력 가드레일 진단 정보"):
-            st.metric("판단 소요 시간", f"{input_check.get('elapsed_time', 0):.2f}초")
-            st.caption("판단 근거 문서:")
-            
-            source_docs = input_check.get("source_documents", [])
-            source_files_used = input_check.get("source_files", None)  # LLM이 실제로 사용한 파일명
-            st.markdown(format_source_documents(source_docs, source_files_used), unsafe_allow_html=True)
+        # 진단 정보 패널: 사용자가 체크박스를 활성화한 경우에만 표시
+        if show_diagnostics:
+            is_harmful = input_check.get("decision") == "HARMFUL"
+            with st.expander("🛡️ 입력 가드레일 진단 정보", expanded=is_harmful):
+                st.metric("판단 소요 시간", f"{input_check.get('elapsed_time', 0):.2f}초")
+                st.caption("판단 근거 문서:")
+                
+                source_docs = input_check.get("source_documents", [])
+                source_files_used = input_check.get("source_files", None)  # LLM이 실제로 사용한 파일명
+                formatted_docs = format_source_documents(source_docs, source_files_used)
+                
+                if not formatted_docs:
+                    st.info("LLM이 사용한 문서를 찾을 수 없습니다.")
+                else:
+                    for doc_info in formatted_docs:
+                        st.markdown(f"**- 문서: `{doc_info['file_name']}`**")
+                        st.markdown(f"> {doc_info['preview']}")
+                        with st.expander("📄 전체 내용 보기"):
+                            st.text(doc_info['full_content'])
 
         if input_check.get("decision") == "HARMFUL":
             # 유해한 입력 차단
@@ -257,15 +304,24 @@ def main():
                     "content": full_response
                 })
 
-                # 스트림 처리 후, 수신된 출력 진단 정보가 있으면 표시
-                if output_diagnostics:
-                    with st.expander("💬 출력 가드레일 진단 정보"):
+                # 스트림 처리 후, 수신된 출력 진단 정보가 있으면 표시 (사용자가 체크박스를 활성화한 경우에만)
+                if show_diagnostics and output_diagnostics:
+                    with st.expander("💬 출력 가드레일 진단 정보", expanded=is_blocked):
                         st.metric("총 검사 소요 시간", f"{output_diagnostics.get('elapsed_time', 0):.2f}초")
                         st.caption("판단에 사용된 근거 문서 (중복 제거):")
                         
                         source_docs = output_diagnostics.get("source_documents", [])
                         source_files_used = output_diagnostics.get("source_files", None)  # 집계된 파일명
-                        st.markdown(format_source_documents(source_docs, source_files_used), unsafe_allow_html=True)
+                        formatted_docs = format_source_documents(source_docs, source_files_used)
+                        
+                        if not formatted_docs:
+                            st.info("LLM이 사용한 문서를 찾을 수 없습니다.")
+                        else:
+                            for doc_info in formatted_docs:
+                                st.markdown(f"**- 문서: `{doc_info['file_name']}`**")
+                                st.markdown(f"> {doc_info['preview']}")
+                                with st.expander("📄 전체 내용 보기"):
+                                    st.text(doc_info['full_content'])
 
         else:
             # CANNOT_DETERMINE 또는 ERROR 상태
