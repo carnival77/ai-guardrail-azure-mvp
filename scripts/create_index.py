@@ -53,47 +53,54 @@ fields = [
         retrievable=True, 
         analyzer_name="en.lucene"
     ),
-    # people 필드 추가 (스크린샷 기반)
+    # people 필드 (필요 시 활성화)
     SearchableField(
         name="people",
         type=SearchFieldDataType.Collection(SearchFieldDataType.String),
         retrievable=True,
-        filterable=True,
-        facetable=True,
+        filterable=False,
+        facetable=False,
         analyzer_name="ko.lucene",
     ),
-    # locations 필드 추가 (스크린샷 기반)
+    # locations 필드
     SearchableField(
         name="locations",
         type=SearchFieldDataType.Collection(SearchFieldDataType.String),
         retrievable=True,
-        filterable=True,
-        facetable=True,
+        filterable=False,
+        facetable=False,
         analyzer_name="ko.lucene",
     ),
-    # 필터링 및 패싯을 위한 보강 필드들
+    # keyphrases 필드
     SearchableField(
         name="keyphrases",
         type=SearchFieldDataType.Collection(SearchFieldDataType.String),
         retrievable=True,
-        filterable=True,
-        facetable=True,
+        filterable=False,
+        facetable=False,
         analyzer_name="ko.lucene",
     ),
+    # organizations 필드
     SearchableField(
         name="organizations",
         type=SearchFieldDataType.Collection(SearchFieldDataType.String),
         retrievable=True,
-        filterable=True,
-        facetable=True,
+        filterable=False,
+        facetable=False,
         analyzer_name="ko.lucene",
     ),
-    # language 필드 추가 (스크린샷 기반)
+    # metadata_storage_name: retrievable=True로 변경 (UI 파일명 표기 편의)
+    SimpleField(
+        name="metadata_storage_name",
+        type=SearchFieldDataType.String,
+        retrievable=True,
+    ),
+    # language 필드 추가 (최적화)
     SearchableField(
-        name="language", 
-        type=SearchFieldDataType.String, 
-        retrievable=True, 
-        filterable=True, 
+        name="language",
+        type=SearchFieldDataType.String,
+        retrievable=True,
+        filterable=True,
         facetable=True,
         analyzer_name="ko.lucene",
     ),
@@ -103,22 +110,34 @@ fields = [
         collection=True,
         fields=[
             SearchableField(name="text", type=SearchFieldDataType.String, retrievable=True, analyzer_name="ko.lucene"),
-            SimpleField(name="type", type=SearchFieldDataType.String, retrievable=True, filterable=True, facetable=True),
-            SimpleField(
-                name="subtype", type=SearchFieldDataType.String, retrievable=True, filterable=True, facetable=True
+            SearchableField(
+                name="type",
+                type=SearchFieldDataType.String,
+                retrievable=True,
+                filterable=False,
+                facetable=False,
+                analyzer_name="ko.lucene",
+            ),
+            SearchableField(
+                name="subtype",
+                type=SearchFieldDataType.String,
+                retrievable=True,
+                filterable=False,
+                facetable=False,
+                analyzer_name="ko.lucene",
             ),
             SimpleField(name="offset", type=SearchFieldDataType.Int32, retrievable=True),
             SimpleField(name="length", type=SearchFieldDataType.Int32, retrievable=True),
             SimpleField(name="score", type=SearchFieldDataType.Double, retrievable=True),
         ],
     ),
-    # masked_text 필드 추가 (스크린샷 기반)
+    # masked_text: analyzer=ko.lucene (한국어 마스킹 텍스트 검색)
     SearchableField(name="masked_text", type=SearchFieldDataType.String, retrievable=True, analyzer_name="ko.lucene"),
-    # 의미 기반 검색을 위한 벡터 필드 (가장 중요!)
+    # content_vector: searchable=False, retrievable=False (벡터 전용)
     SearchField(
         name="content_vector",
         type=SearchFieldDataType.Collection(SearchFieldDataType.Single),
-        searchable=False,
+        searchable=True,
         vector_search_dimensions=1536,
         vector_search_profile_name="hnsw-profile",
     ),
@@ -127,7 +146,13 @@ fields = [
 # --- 4. 벡터 검색 프로필 정의 ---
 vector_search = VectorSearch(
     profiles=[VectorSearchProfile(name="hnsw-profile", algorithm_configuration_name="hnsw-config")],
-    algorithms=[HnswAlgorithmConfiguration(name="hnsw-config", kind="hnsw", parameters={"metric": "cosine"})],
+    algorithms=[
+        HnswAlgorithmConfiguration(
+            name="hnsw-config",
+            kind="hnsw",
+            parameters={"metric": "cosine", "m": 12, "efConstruction": 200, "efSearch": 150},
+        )
+    ],
 )
 
 # --- 5. 인덱스 객체 생성 ---

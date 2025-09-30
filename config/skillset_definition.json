@@ -1,11 +1,11 @@
 {
   "name": "placeholder-skillset-name",
-  "description": "Upgraded skillset with text splitting for optimized RAG, managed via JSON.",
+  "description": "RAG용 스킬셋 - 문서 분할 및 보강 메타데이터 추출",
   "skills": [
     {
       "@odata.type": "#Microsoft.Skills.Text.LanguageDetectionSkill",
       "name": "#language-detection",
-      "description": "Detect the language of the whole document first",
+      "description": "Detect document language before enrichment",
       "context": "/document",
       "inputs": [
         {
@@ -23,11 +23,14 @@
     {
       "@odata.type": "#Microsoft.Skills.Text.SplitSkill",
       "name": "#split-skill",
-      "description": "Split content into pages of text for better RAG performance",
-      "context": "/document",
+      "description": "Split content into manageable pages for RAG",
+      "context": "/document/content",
+      "defaultLanguageCode": "en",
       "textSplitMode": "pages",
-      "maximumPageLength": 1000,
+      "maximumPageLength": 600,
       "pageOverlapLength": 100,
+      "maximumPagesToTake": 0,
+      "unit": "characters",
       "inputs": [
         {
           "name": "text",
@@ -48,13 +51,28 @@
     {
       "@odata.type": "#Microsoft.Skills.Text.V3.EntityRecognitionSkill",
       "name": "#entity-recognition",
-      "context": "/document/pages/*",
-      "categories": ["PersonType", "Email", "Event", "IPAddress", "PhoneNumber", "Organization", "Skill", "Location", "Product", "URL", "Person", "DateTime", "Address", "Quantity"],
+      "context": "/document/content/pages/*",
+      "categories": [
+        "PersonType",
+        "Email",
+        "Event",
+        "IPAddress",
+        "PhoneNumber",
+        "Organization",
+        "Skill",
+        "Location",
+        "Product",
+        "URL",
+        "Person",
+        "DateTime",
+        "Address",
+        "Quantity"
+      ],
       "defaultLanguageCode": "ko",
       "inputs": [
         {
           "name": "text",
-          "source": "/document/pages/*"
+          "source": "/document/content/pages/*"
         },
         {
           "name": "languageCode",
@@ -70,12 +88,12 @@
     {
       "@odata.type": "#Microsoft.Skills.Text.KeyPhraseExtractionSkill",
       "name": "#keyphrase-extraction",
-      "context": "/document/pages/*",
+      "context": "/document/content/pages/*",
       "defaultLanguageCode": "ko",
       "inputs": [
         {
           "name": "text",
-          "source": "/document/pages/*"
+          "source": "/document/content/pages/*"
         },
         {
           "name": "languageCode",
@@ -89,10 +107,13 @@
     {
       "@odata.type": "#Microsoft.Skills.Text.TranslationSkill",
       "name": "#translation",
-      "context": "/document/pages/*",
+      "context": "/document/content/pages/*",
       "defaultToLanguageCode": "en",
       "inputs": [
-        { "name": "text", "source": "/document/pages/*" }
+        {
+          "name": "text",
+          "source": "/document/content/pages/*"
+        }
       ],
       "outputs": [
         { "name": "translatedText", "targetName": "translated_text" }
@@ -101,14 +122,20 @@
     {
       "@odata.type": "#Microsoft.Skills.Text.PIIDetectionSkill",
       "name": "#pii-detection",
-      "context": "/document/pages/*",
-      "defaultLanguageCode": "en",
+      "context": "/document/content/pages/*",
+      "defaultLanguageCode": "ko",
       "minimumPrecision": 0.5,
       "maskingMode": "replace",
       "maskingCharacter": "*",
       "inputs": [
-        { "name": "text", "source": "/document/pages/*" },
-        { "name": "languageCode", "source": "/document/language" }
+        {
+          "name": "text",
+          "source": "/document/content/pages/*"
+        },
+        {
+          "name": "languageCode",
+          "source": "/document/language"
+        }
       ],
       "outputs": [
         { "name": "piiEntities", "targetName": "pii_entities" },
