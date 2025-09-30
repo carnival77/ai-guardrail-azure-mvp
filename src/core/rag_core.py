@@ -1,12 +1,11 @@
 import openai
-import json
 import os
 import time  # 시간 측정을 위해 time 모듈 import
 from typing import Dict, Any, List
 
 from dotenv import load_dotenv
 from langchain_core.documents import Document
-from langchain_core.output_parsers import StrOutputParser
+from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableParallel, RunnablePassthrough
 from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
@@ -15,6 +14,13 @@ from config.config_loader import CONFIG
 
 # --- 1. 환경 설정 및 Azure 서비스 클라이언트 초기화 ---
 load_dotenv()
+
+# LangSmith 추적 설정 (config.yaml 기반)
+if CONFIG.get("langsmith_enabled", False):
+    os.environ.setdefault("LANGSMITH_TRACING", "true")
+    if CONFIG.get("langsmith_project_name"):
+        os.environ.setdefault("LANGSMITH_PROJECT", CONFIG["langsmith_project_name"])
+    # LANGSMITH_API_KEY는 .env 파일에서 로드됨
 
 # 민감 정보는 환경 변수에서, 비민감 설정은 config에서 가져오기
 openai.api_type = os.getenv("AZURE_OPENAI_API_TYPE", "azure")
@@ -130,8 +136,8 @@ Final Answer (JSON object only):
 prompt = ChatPromptTemplate.from_template(template)
 
 # 2.3. 출력 파서(Output Parser) 정의
-# LLM의 JSON 형식 응답을 Python 딕셔너리로 파싱
-output_parser = StrOutputParser()
+# JsonOutputParser를 사용하여 자동으로 JSON 파싱 및 에러 핸들링
+output_parser = JsonOutputParser()
 
 
 # --- 3. 컨텍스트 윈도우 및 top-k 제한 함수 ---
@@ -196,9 +202,8 @@ def check_guardrail(text_to_evaluate: str) -> Dict[str, Any]:
             "question": text_to_evaluate,
         }
 
-        # 4. LLM 체인 실행
-        answer_str = (prompt | llm | output_parser).invoke(prompt_inputs)
-        response_json = json.loads(answer_str)
+        # 4. LLM 체인 실행 (JsonOutputParser가 자동으로 파싱)
+        response_json = (prompt | llm | output_parser).invoke(prompt_inputs)
 
         end_time = time.time()
         elapsed_time = end_time - start_time
@@ -217,14 +222,6 @@ def check_guardrail(text_to_evaluate: str) -> Dict[str, Any]:
         
         return response_json
     
-    except json.JSONDecodeError:
-        end_time = time.time()
-        return {
-            "decision": "ERROR", 
-            "reason": "Failed to parse LLM response as JSON.",
-            "elapsed_time": end_time - start_time,
-            "source_documents": []
-        }
     except Exception as e:
         end_time = time.time()
         return {
