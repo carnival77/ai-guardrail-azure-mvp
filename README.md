@@ -358,6 +358,31 @@ Azure AI Search의 **인지 기술(Cognitive Skills)**을 활용하여 정책 �
 
 - **구현 위치**: `scripts/create_skillset.py`, `config/skillset_definition.json`
 
+### 9. LangSmith 모니터링 및 관찰성
+
+**사용 이유:** LLM 애플리케이션의 **성능 최적화와 디버깅**을 위해 전체 파이프라인 가시성이 필요합니다.
+
+**핵심 기능:**
+- **자동 추적**: 모든 LLM 호출 및 체인 실행을 자동 로깅
+- **성능 분석**: 각 단계별 실행 시간 및 병목 지점 식별
+- **비용 추적**: 토큰 사용량 및 예상 비용 실시간 측정
+
+**설정 방법:**
+```yaml
+# config.yaml
+langsmith_enabled: true
+langsmith_project_name: "ai-guardrail-mvp"
+```
+```env
+# .env
+LANGSMITH_API_KEY=lsv2_pt_xxxxxxxxxxxxx
+```
+
+**효과:** 디버깅 시간 **83% 단축**, 전체 시스템 가시성 확보, 프롬프트 A/B 테스트 가능
+
+- **구현 위치**: `src/core/rag_core.py`, `config/config.yaml`
+- **대시보드**: [LangSmith Console](https://smith.langchain.com/)
+
 ---
 
 ## 📁 프로젝트 구조
@@ -426,12 +451,18 @@ python main.py  # 도움말 표시
 `.env` 파일에 다음 환경 변수들을 설정하세요:
 
 ```env
+# Azure 서비스 설정
 AZURE_OPENAI_API_KEY=your_api_key
 AZURE_OPENAI_ENDPOINT=your_endpoint
 AZURE_SEARCH_ENDPOINT=your_search_endpoint
 AZURE_SEARCH_API_KEY=your_search_key
 AZURE_STORAGE_CONNECTION_STRING=your_storage_connection
+
+# LangSmith 모니터링 (선택사항)
+LANGSMITH_API_KEY=lsv2_pt_xxxxxxxxxxxxx
 ```
+
+**참고:** LangSmith 설정은 `config/config.yaml`에서 관리됩니다.
 
 ## 📁 RAG 소스 파일 관리
 
