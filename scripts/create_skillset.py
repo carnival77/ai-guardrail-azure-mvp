@@ -1,27 +1,134 @@
 import os
 import sys
 import json
+from typing import Dict, Any, List
 
 # 프로젝트 루트를 Python 경로에 추가
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from azure.core.credentials import AzureKeyCredential
-from azure.search.documents.indexes import SearchSkillsetClient
-from azure.search.documents.indexes.models import SearchSkillset
+from azure.search.documents.indexes import SearchIndexerClient
+from azure.search.documents.indexes.models import (
+    SearchIndexerSkillset,
+    LanguageDetectionSkill,
+    SplitSkill,
+    EntityRecognitionSkill,
+    KeyPhraseExtractionSkill,
+    TextTranslationSkill,
+    PIIDetectionSkill,
+    InputFieldMappingEntry,
+    OutputFieldMappingEntry,
+)
 from dotenv import load_dotenv
 from config.config_loader import CONFIG
 
-def create_skillset_from_json(skillset_client: SearchSkillsetClient, skillset_definition: dict) -> None:
+
+def _build_io_entries(entries: List[Dict[str, Any]], entry_type: str) -> List[Any]:
+    """입력/출력 정의를 모델 객체로 변환합니다."""
+    if not entries:
+        return []
+
+    if entry_type == "input":
+        return [InputFieldMappingEntry(name=item["name"], source=item["source"]) for item in entries]
+    return [OutputFieldMappingEntry(name=item["name"], target_name=item["targetName"]) for item in entries]
+
+
+def _build_skill(skill_payload: Dict[str, Any]) -> Any:
+    """스킬 정의(dict)를 Azure Search SDK 스킬 객체로 변환합니다."""
+    skill_type = skill_payload.get("@odata.type")
+    name = skill_payload.get("name")
+    description = skill_payload.get("description")
+    context = skill_payload.get("context")
+    inputs = _build_io_entries(skill_payload.get("inputs", []), "input")
+    outputs = _build_io_entries(skill_payload.get("outputs", []), "output")
+
+    if skill_type == "#Microsoft.Skills.Text.LanguageDetectionSkill":
+        return LanguageDetectionSkill(
+            name=name,
+            description=description,
+            context=context,
+            inputs=inputs,
+            outputs=outputs,
+        )
+
+    if skill_type == "#Microsoft.Skills.Text.SplitSkill":
+        return SplitSkill(
+            name=name,
+            description=description,
+            context=context,
+            inputs=inputs,
+            outputs=outputs,
+            text_split_mode=skill_payload.get("textSplitMode"),
+            maximum_page_length=skill_payload.get("maximumPageLength"),
+            page_overlap_length=skill_payload.get("pageOverlapLength"),
+            maximum_pages_to_take=skill_payload.get("maximumPagesToTake"),
+            default_language_code=skill_payload.get("defaultLanguageCode"),
+            unit=skill_payload.get("unit"),
+        )
+
+    if skill_type == "#Microsoft.Skills.Text.V3.EntityRecognitionSkill":
+        return EntityRecognitionSkill(
+            name=name,
+            description=description,
+            context=context,
+            inputs=inputs,
+            outputs=outputs,
+            categories=skill_payload.get("categories"),
+            default_language_code=skill_payload.get("defaultLanguageCode"),
+        )
+
+    if skill_type == "#Microsoft.Skills.Text.KeyPhraseExtractionSkill":
+        return KeyPhraseExtractionSkill(
+            name=name,
+            description=description,
+            context=context,
+            inputs=inputs,
+            outputs=outputs,
+            default_language_code=skill_payload.get("defaultLanguageCode"),
+        )
+
+    if skill_type == "#Microsoft.Skills.Text.TranslationSkill":
+        return TextTranslationSkill(
+            name=name,
+            description=description,
+            context=context,
+            inputs=inputs,
+            outputs=outputs,
+            default_to_language_code=skill_payload.get("defaultToLanguageCode"),
+        )
+
+    if skill_type == "#Microsoft.Skills.Text.PIIDetectionSkill":
+        return PIIDetectionSkill(
+            name=name,
+            description=description,
+            context=context,
+            inputs=inputs,
+            outputs=outputs,
+            default_language_code=skill_payload.get("defaultLanguageCode"),
+            minimum_precision=skill_payload.get("minimumPrecision"),
+            masking_mode=skill_payload.get("maskingMode"),
+            masking_character=skill_payload.get("maskingCharacter"),
+        )
+
+    raise ValueError(f"지원되지 않는 스킬 유형입니다: {skill_type}")
+
+
+def create_skillset_from_json(skillset_client: SearchIndexerClient, skillset_definition: dict) -> None:
     """JSON 정의를 기반으로 기술 집합을 생성 또는 업데이트합니다."""
     try:
         skillset_name = skillset_definition.get("name")
         print(f"'{skillset_name}' 기술 집합을 생성 또는 업데이트합니다...")
-        
-        # SDK가 dict를 SearchSkillset 객체로 변환할 수 있도록 from_dict 클래스 메서드 사용 고려
-        # 하지만 최신 SDK는 dict를 직접 받을 수 있음
-        skillset = SearchSkillset.from_dict(skillset_definition)
+
+        skills = [_build_skill(skill) for skill in skillset_definition.get("skills", [])]
+        description = skillset_definition.get("description")
+
+        skillset = SearchIndexerSkillset(
+            name=skillset_name,
+            description=description,
+            skills=skills,
+        )
+
         result = skillset_client.create_or_update_skillset(skillset=skillset)
-        
         print(f"'{result.name}' 기술 집합이 성공적으로 생성/업데이트되었습니다.")
     except Exception as e:
         print(f"기술 집합 생성 중 오류가 발생했습니다: {e}")
@@ -56,7 +163,7 @@ def main():
 
     # --- 3. 클라이언트 연결 및 스킬셋 생성 ---
     credential = AzureKeyCredential(search_api_key)
-    skillset_client = SearchSkillsetClient(endpoint=search_endpoint, credential=credential)
+    skillset_client = SearchIndexerClient(endpoint=search_endpoint, credential=credential)
     create_skillset_from_json(skillset_client, skillset_definition)
 
 if __name__ == "__main__":

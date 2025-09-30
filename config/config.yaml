@@ -7,7 +7,7 @@ azure_openai_embedding_deployment_name: "text-embedding-3-small"
 azure_openai_api_version: "2024-12-01-preview"
 
 # Azure AI Search 설정
-azure_search_index_name: "bank-financial-policy-index-2"
+azure_search_index_name: "bank-financial-policy-index-3"
 azure_skillset_name: "bank-financial-policy-skillset"
 azure_skillset_definition_path: "config/skillset_definition.json" # 스킬셋 JSON 정의 파일 경로
 
