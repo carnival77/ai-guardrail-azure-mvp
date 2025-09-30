@@ -9,8 +9,11 @@ import streamlit as st
 import os
 import urllib.parse
 import base64
+import subprocess
+import sys
 from src.core.rag_core import check_guardrail, llm
 from src.utils.streaming_utils import stream_and_filter_response
+from config.config_loader import CONFIG
 
 def format_source_documents(documents: list, source_files_filter: list = None) -> str:
     """RAG의 근거 문서를 Streamlit에 표시하기 좋게 포맷합니다.
@@ -85,12 +88,57 @@ def main():
     )
     
     # 헤더
-    st.title("🛡️ 기업용 AI 가드레일 시스템")
+    st.title("🛡️ KB 국민은행 AI 가드레일 시스템")
     st.caption("안전하고 신뢰할 수 있는 AI 금융 상담 서비스")
-    
-    # 사이드바 정보
+
     with st.sidebar:
-        st.header("🔒 보안 정책")
+        st.header("🔒 보안 정책 관리")
+        
+        uploaded_files = st.file_uploader(
+            "정책 파일(.txt, .pdf)을 업로드하세요.",
+            type=["txt", "pdf"],
+            accept_multiple_files=True
+        )
+
+        if st.button("업로드 및 지식 베이스 동기화", type="primary"):
+            if uploaded_files:
+                rag_source_path = CONFIG.get("rag_source_directory", "RAG_source")
+                os.makedirs(rag_source_path, exist_ok=True)
+                
+                # 파일 저장
+                for file in uploaded_files:
+                    file_path = os.path.join(rag_source_path, file.name)
+                    with open(file_path, "wb") as f:
+                        f.write(file.getbuffer())
+                    st.sidebar.write(f"`{file.name}` 저장 완료.")
+                
+                # 동기화 스크립트 실행
+                with st.spinner("Azure Blob Storage와 동기화 중..."):
+                    try:
+                        command = [sys.executable, "main.py", "upload-rag"]
+                        result = subprocess.run(
+                            command,
+                            capture_output=True,
+                            text=True,
+                            check=True,
+                            encoding='utf-8'
+                        )
+                        st.sidebar.success("✅ 동기화 완료!")
+                        with st.sidebar.expander("동기화 로그 보기"):
+                            st.code(result.stdout)
+                    except subprocess.CalledProcessError as e:
+                        st.sidebar.error("❌ 동기화 실패.")
+                        with st.sidebar.expander("오류 로그 보기"):
+                            st.code(e.stderr)
+                    except FileNotFoundError:
+                        st.sidebar.error("`main.py`를 찾을 수 없습니다. 스크립트를 프로젝트 루트에서 실행하세요.")
+
+            else:
+                st.sidebar.warning("업로드할 파일을 먼저 선택해주세요.")
+
+        st.divider() # 구분선 추가
+
+        st.header("📜 기존 보안 정책")
         st.info("""
         **차단되는 내용:**
         - 확정적 투자 수익 표현
