@@ -72,5 +72,7 @@ except (FileNotFoundError, yaml.YAMLError) as e:
         "subsequent_buffer_size": 200,
         "llm_temperature": 0,
         "llm_max_retries": 3,
-        "llm_timeout": 30
+        "llm_timeout": 30,
+        "rag_top_k": 3,
+        "rag_max_context_tokens": 2000
     }
