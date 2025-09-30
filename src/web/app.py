@@ -88,7 +88,7 @@ def main():
     )
     
     # 헤더
-    st.title("🛡️ KB 국민은행 AI 가드레일 시스템")
+    st.title("🛡️ 기업용 AI 가드레일 시스템")
     st.caption("안전하고 신뢰할 수 있는 AI 금융 상담 서비스")
 
     with st.sidebar:
