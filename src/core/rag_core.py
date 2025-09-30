@@ -1,12 +1,14 @@
 import openai
 import json
 import os
-from typing import Dict, Any
+import time  # 시간 측정을 위해 time 모듈 import
+from typing import Dict, Any, List
 
 from dotenv import load_dotenv
+from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
+from langchain_core.runnables import RunnableParallel, RunnablePassthrough
 from langchain_openai import AzureChatOpenAI, AzureOpenAIEmbeddings
 from langchain_community.vectorstores import AzureSearch
 from config.config_loader import CONFIG
@@ -69,11 +71,22 @@ First, state your decision clearly as "SAFE" or "HARMFUL".
 Then, explain the reason for your decision by citing the specific policy number and content.
 If the provided context is insufficient to make a judgment, you must respond with "CANNOT_DETERMINE".
 
-The final output must be a JSON object with two keys: "decision" and "reason".
+IMPORTANT: You must also specify which source document(s) you actually used to make your decision.
+Extract the filename from the metadata_storage_path or metadata_storage_name in the context.
+
+The final output must be a JSON object with three keys: "decision", "reason", and "source_files".
 Example for a harmful text:
 {{
   "decision": "HARMFUL",
-  "reason": "The text violates policy 1.1 (불완전판매 방지) by using misleading terms like '100%' and '확정 수익'."
+  "reason": "The text violates policy 1.1 (불완전판매 방지) by using misleading terms like '100%' and '확정 수익'.",
+  "source_files": ["bank_policy.txt"]
+}}
+
+Example for a safe text:
+{{
+  "decision": "SAFE",
+  "reason": "The text is a general inquiry about banking services and does not violate any policies.",
+  "source_files": ["bank_policy.txt"]
 }}
 
 Context from policy documents:
@@ -91,38 +104,61 @@ output_parser = StrOutputParser()
 
 # --- 3. LCEL을 이용한 전체 RAG 체인(Chain) 결합 ---
 # LangChain Expression Language (LCEL)를 사용하여 각 컴포넌트를 파이프로 연결
-rag_chain = (
+# 체인을 수정하여 검색된 문서(context)가 최종 결과에 포함되도록 합니다.
+rag_chain_with_source = RunnableParallel(
     {"context": retriever, "question": RunnablePassthrough()}
-    | prompt
-    | llm
-    | output_parser
+).assign(
+    answer=prompt | llm | output_parser
 )
 
 
 # --- 4. 가드레일 실행 함수 정의 ---
 def check_guardrail(text_to_evaluate: str) -> Dict[str, Any]:
     """
-    주어진 텍스트에 대해 AI 가드레일 정책 위반 여부를 검사합니다.
+    주어진 텍스트를 평가하고, 판단 결과, 이유, 소요 시간, 근거 문서를 반환합니다.
 
     Args:
-        text_to_evaluate: 검사할 텍스트 (사용자 질문 또는 LLM 답변).
+        text_to_evaluate (str): 평가할 텍스트입니다.
 
     Returns:
-        A dictionary containing the decision ('SAFE', 'HARMFUL', 'CANNOT_DETERMINE')
-        and the reason for the decision.
+        Dict[str, Any]: decision, reason, elapsed_time, source_documents를 포함하는 딕셔너리.
     """
+    start_time = time.time()
     try:
-        # RAG 체인을 실행하여 LLM의 판단 결과를 얻음
-        response_str = rag_chain.invoke(text_to_evaluate)
-        # LLM이 생성한 JSON 문자열을 파싱
+        # 수정된 체인을 호출합니다.
+        response = rag_chain_with_source.invoke(text_to_evaluate)
+        
+        # LLM의 답변(JSON 문자열)과 근거 문서를 추출합니다.
+        response_str = response.get("answer", "{}")
+        source_documents: List[Document] = response.get("context", [])
+        
         response_json = json.loads(response_str)
+        
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        
+        # 반환 객체에 소요 시간과 근거 문서를 추가합니다.
+        response_json["elapsed_time"] = elapsed_time
+        response_json["source_documents"] = source_documents
+        
         return response_json
+    
     except json.JSONDecodeError:
-        # LLM이 유효한 JSON을 생성하지 못한 경우
-        return {"decision": "ERROR", "reason": "Failed to parse LLM response as JSON."}
+        end_time = time.time()
+        return {
+            "decision": "ERROR", 
+            "reason": "Failed to parse LLM response as JSON.",
+            "elapsed_time": end_time - start_time,
+            "source_documents": []
+        }
     except Exception as e:
-        # 기타 예외 처리
-        return {"decision": "ERROR", "reason": f"An unexpected error occurred: {e}"}
+        end_time = time.time()
+        return {
+            "decision": "ERROR", 
+            "reason": f"An unexpected error occurred: {e}",
+            "elapsed_time": end_time - start_time,
+            "source_documents": []
+        }
 
 
 if __name__ == "__main__":
