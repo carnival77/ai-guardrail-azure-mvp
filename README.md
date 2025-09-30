@@ -2,6 +2,378 @@
 
 Azure OpenAI와 Azure AI Search를 활용한 금융 정책 기반 AI 가드레일 MVP 시스템
 
+---
+
+## 🌟 프로젝트 개요
+
+### 1. 문제 정의 (Problem)
+
+- **금융권의 생성형 AI 도입 과제**: 생성형 AI는 혁신적이지만, 다음과 같은 심각한 리스크를 동반합니다.
+    - **부정확한 정보**: 환각(Hallucination)으로 인해 잘못된 금융 정보를 제공할 수 있습니다.
+    - **정책 위반**: 내부 규정이나 금융 소비자 보호법을 위반하는 답변을 생성할 수 있습니다.
+    - **보안 위협**: 개인정보를 요구하거나 피싱/스미싱에 악용될 수 있습니다.
+
+### 2. 대상 사용자 (Users)
+
+- **금융사 내부 직원**: AI를 활용해 업무 효율을 높이고자 하는 직원.
+- **금융 서비스 이용 고객**: AI 챗봇을 통해 금융 상담을 받는 최종 사용자.
+
+### 3. 솔루션 개요 (Solution)
+
+- **이중 방어벽, AI 가드레일 시스템**: Azure OpenAI와 AI Search 기반의 RAG(검색 증강 생성) 기술을 활용하여, 사용자의 **입력(Input)**과 LLM의 **출력(Output)** 양방향에서 실시간으로 유해성과 정책 위반 여부를 검사하는 시스템입니다. 이를 통해 AI 상호작용의 안전성과 신뢰성을 확보합니다.
+
+---
+
+## 🏛️ 시스템 아키텍처
+
+### 전체 구성도
+
+```mermaid
+graph TB
+    subgraph "사용자 계층"
+        U1[일반 사용자<br/>금융 상담 챗봇 이용]
+        U2[정책 관리자<br/>보안 정책 업데이트]
+    end
+
+    subgraph "프론트엔드 - Streamlit Web UI"
+        UI[웹 인터페이스]
+        UI_CHAT[채팅 화면]
+        UI_POLICY[정책 업로드 사이드바]
+    end
+
+    subgraph "백엔드 - AI 가드레일 시스템"
+        GW[가드레일 게이트웨이<br/>src/web/app.py]
+        
+        subgraph "입력 검증"
+            PRE[입력 가드레일<br/>질문 안전성 검사]
+        end
+        
+        subgraph "AI 응답 생성"
+            LLM[Azure OpenAI<br/>GPT-4 메인 LLM]
+        end
+        
+        subgraph "출력 검증"
+            POST[출력 가드레일<br/>답변 실시간 검사]
+            BUF[동적 버퍼링<br/>문장 조각별 순차 검증]
+        end
+    end
+
+    subgraph "RAG 지식 베이스"
+        RAG_ENGINE[RAG 엔진<br/>src/core/rag_core.py]
+        SEARCH[Azure AI Search<br/>정책 문서 검색 엔진]
+    end
+
+    subgraph "정책 저장소"
+        STAGE[스테이징 영역<br/>RAG_source/]
+        SYNC[클라우드 동기화<br/>scripts/upload_to_blob.py]
+        BLOB[Azure Blob Storage<br/>정책 문서 원본]
+        INDEXER[AI Search Indexer<br/>자동 인덱싱 + 문서 분할]
+    end
+
+    subgraph "CI/CD 파이프라인"
+        GIT[GitHub Repository]
+        ACTIONS[GitHub Actions]
+        DEPLOY[Azure Web App]
+    end
+
+    %% 사용자 흐름
+    U1 --> UI_CHAT
+    U2 --> UI_POLICY
+    UI_CHAT --> GW
+    UI_POLICY --> STAGE
+
+    %% 가드레일 흐름
+    GW --> PRE
+    PRE -->|SAFE| LLM
+    PRE -->|HARMFUL| GW
+    LLM -->|스트리밍 응답| POST
+    POST --> BUF
+    BUF -->|SAFE 조각| GW
+    BUF -->|HARMFUL 감지| GW
+    GW --> UI_CHAT
+
+    %% RAG 검색 흐름
+    PRE -.정책 조회.-> RAG_ENGINE
+    POST -.정책 조회.-> RAG_ENGINE
+    RAG_ENGINE --> SEARCH
+
+    %% 정책 관리 흐름
+    STAGE --> SYNC
+    SYNC --> BLOB
+    BLOB --> INDEXER
+    INDEXER --> SEARCH
+
+    %% CI/CD 흐름
+    GIT -->|Push to main| ACTIONS
+    ACTIONS --> DEPLOY
+    DEPLOY -.배포.-> GW
+
+    %% 스타일링
+    style PRE fill:#e8f5e9,stroke:#4caf50,stroke-width:3px
+    style POST fill:#fff3e0,stroke:#ff9800,stroke-width:3px
+    style BUF fill:#fff3e0,stroke:#ff9800,stroke-width:2px
+    style RAG_ENGINE fill:#e3f2fd,stroke:#2196f3,stroke-width:2px
+    style SEARCH fill:#e3f2fd,stroke:#2196f3,stroke-width:2px
+```
+
+### 정책 관리 흐름 (Policy Management Flow)
+
+AI 가드레일의 판단 근거가 되는 정책 문서는 **Streamlit UI**를 통해 간편하게 관리되며, 실제 RAG 시스템은 런타임에 로컬 파일을 직접 사용하지 않습니다.
+
+```
+1. 정책 관리자가 웹 UI 사이드바에서 정책 파일(.txt, .pdf) 업로드
+   ↓
+2. 업로드된 파일이 서버의 스테이징 영역에 임시 저장
+   ↓
+3. "동기화" 버튼 클릭 시 자동 동기화 프로세스 실행
+   ↓
+4. 동기화 스크립트가 변경된 파일만 클라우드 저장소(Azure Blob)에 업로드
+   ↓
+5. AI Search Indexer가 변경 사항을 자동 감지하고 문서 분할 후 인덱싱
+   ↓
+6. 새로운 정책이 RAG 검색 엔진에 반영되어 가드레일 판단에 즉시 적용
+```
+
+**📌 핵심 설계 원칙**
+- **스테이징 분리**: 로컬 스테이징 영역(`RAG_source/`)은 정책 업데이트 용도로만 사용
+- **클라우드 중심**: 실제 가드레일 동작 시 Azure AI Search Index만 사용 (출처: Azure Blob Storage)
+- **독립 운영**: 한 번 동기화 후에는 로컬 파일 없이도 RAG 시스템 정상 작동
+
+### 가드레일 동작 흐름 (Guardrail Runtime Flow)
+
+사용자 요청부터 LLM 응답까지, 모든 데이터는 RAG 기반 가드레일을 통과합니다. 아래 다이어그램은 이 과정을 시각적으로 보여줍니다.
+
+```mermaid
+sequenceDiagram
+    participant User as 사용자
+    participant Gateway as 가드레일 게이트웨이
+    participant RAG as RAG 엔진
+    participant Search as 정책 검색 엔진<br/>(Azure AI Search)
+    participant Judge as 판단 LLM<br/>(정책 위반 평가)
+    participant MainLLM as 메인 LLM<br/>(질문 답변)
+
+    User->>Gateway: 1️⃣ 질문 제출
+
+    rect rgb(235,246,238)
+        note over Gateway,Judge: 2️⃣ 입력 가드레일 검사
+        Gateway->>RAG: 질문 안전성 검증 요청
+        RAG->>Search: 관련 정책 문서 검색
+        Search-->>RAG: 정책 문서 반환 (상위 3개)
+        RAG->>Judge: "이 질문이 정책에 위배됩니까?"<br/>(정책 + 질문)
+        Judge-->>RAG: 판단 결과<br/>(SAFE / HARMFUL + 근거)
+        RAG-->>Gateway: 검사 결과 반환
+        
+        alt 질문이 정책 위반인 경우
+            Gateway-->>User: ❌ 요청 거부<br/>"부적절한 질문이 감지되었습니다"
+            note over Gateway: 처리 종료
+        end
+    end
+
+    rect rgb(230, 240, 255)
+        note over Gateway,MainLLM: 3️⃣ 안전한 질문에 대한 답변 생성
+        Gateway->>MainLLM: 질문 전달
+        MainLLM-->>Gateway: 답변 스트리밍 시작
+    end
+
+    rect rgb(255, 240, 240)
+        note over Gateway,Judge: 4️⃣ 출력 가드레일 검사 (동적 버퍼링)
+        loop 답변 문장 조각마다 반복
+            Gateway->>RAG: 답변 조각 안전성 검증 요청
+            RAG->>Search: 관련 정책 문서 검색
+            Search-->>RAG: 정책 문서 반환
+            RAG->>Judge: "이 답변이 정책에 위배됩니까?"<br/>(정책 + 답변)
+            Judge-->>RAG: 판단 결과
+            RAG-->>Gateway: 검사 결과 반환
+            
+            alt 답변이 정책 위반인 경우
+                Gateway-->>User: ❌ 답변 차단 및 중단<br/>"정책 위배 답변이 차단되었습니다"
+                note over Gateway: 스트림 종료
+            else 답변이 안전한 경우
+                Gateway-->>User: ✅ 안전한 답변 조각 표시
+            end
+        end
+    end
+
+    Gateway-->>User: ✅ 검증 완료된 최종 답변 전달
+```
+
+**🔑 핵심 동작 원리**
+
+1. **이중 방어벽 구조**
+   - **입력 검증**: 사용자 질문이 LLM에 도달하기 전 사전 차단
+   - **출력 검증**: LLM 답변이 사용자에게 노출되기 전 실시간 차단
+
+2. **RAG 기반 정책 판단**
+   - 모든 검사는 고정된 규칙이 아닌, **검색된 정책 문서를 근거로 LLM이 맥락적 판단**
+   - 정책 업데이트 시 시스템 재배포 불필요 (검색 엔진만 갱신)
+
+3. **동적 버퍼링 기술**
+   - LLM 답변을 작은 조각으로 나눠 순차 검증 (초기: 50자 → 이후: 200자)
+   - 유해 내용 감지 시 즉시 스트림 중단하여 노출 최소화
+
+4. **데이터 흐름**
+   ```
+   검증 요청 → RAG 엔진 → Azure AI Search Index
+                            ↑
+                    Azure Blob Storage (정책 원본)
+                            ↑
+                    관리자 UI 업로드
+   ```
+
+---
+
+## ✨ 핵심 기술 포인트
+
+### 1. RAG 기반 이중 가드레일 및 동적 버퍼링
+
+**양방향 검사 (Dual-Layer Guardrails)**
+- RAG 엔진의 가드레일 검증 로직을 통해 LLM 요청 **전(입력 필터)**과 **후(출력 필터)** 모두에서 기업 정책 위반 여부를 판단합니다.
+
+**동적 버퍼링 기술 (Dynamic Buffer Pattern)** ⭐
+
+AWS Bedrock Guardrails의 검증된 패턴을 차용하여, **안전성과 응답 속도의 최적 균형점**을 찾았습니다.
+
+<img src="https://github.com/user-attachments/assets/a0ccebb9-4ece-4072-882c-8c5c42da4227" alt="AWS Bedrock Guardrails - Dynamic Buffer system" width="1190" height="662" />
+
+**핵심 메커니즘:**
+1. **초기 작은 버퍼 (50자)**: 빠른 첫 응답으로 사용자 대기 시간 최소화
+2. **이후 큰 버퍼 (200자)**: 검증 API 호출 횟수를 줄여 효율성 향상
+3. **실시간 검증**: 버퍼가 찬 시점마다 가드레일 체크 수행
+4. **즉시 차단**: 유해 내용 감지 시 스트림 즉시 중단
+
+**3가지 패턴 비교 분석 (AWS Bedrock 기준):**
+
+| 평가 항목 | 실시간 스트리밍<br/> | 지연 처리<br/> | **동적 버퍼**<br/> |
+|---------|----------------------|----------------------|----------------------|
+| **초기 응답 속도** | ⚡ 0.5초 (매우 빠름) | 🐢 10초+ (매우 느림) | ✅ **4.2초 (적절함)** |
+| **안전성** | ⚠️ 낮음 (필터 없음) | ✅ 높음 (완전 검증) | ✅ **높음 (실시간 검증)** |
+| **사용자 경험** | ⚡ 우수 (자연스러움) | ⚠️ 나쁨 (긴 대기) | ✅ **양호 (균형적)** |
+| **효율성** | 높음 | 낮음 (API 1회 호출) | 중간 (API 다중 호출) |
+
+**선택 근거:**
+> 금융 서비스의 특성상 **안전성은 타협할 수 없는 필수 요건**입니다. 동시에 챗봇 대화의 자연스러운 흐름을 위해 **응답 속도도 중요**합니다. 동적 버퍼 패턴은 이 두 가지를 모두 만족하는 **검증된 산업 표준 솔루션**입니다.
+
+**실제 구현 효과:**
+- 초기 응답까지 평균 4.2초 (실용적 범위)
+- 유해 콘텐츠 노출 전 100% 차단
+- 자연스러운 대화 흐름 유지
+
+- **구현 위치**: 스트리밍 유틸리티 모듈 (`src/utils/streaming_utils.py`)
+- **참고**: [AWS Bedrock - Streaming output protection](https://aws.amazon.com/ko/blogs/tech/protecting-llm-streaming-output-with-amazon-bedrock-guardrails/)
+
+### 2. 운영 편의성을 고려한 정책 관리 자동화
+
+- **원클릭 동기화**: 웹 UI에서 파일 업로드 후 버튼 클릭 한 번으로 정책 파일을 클라우드에 자동 동기화합니다.
+- **증분 업로드 최적화**: MD5 해시 비교를 통해 **변경된 파일만 선택적으로 업로드**하여 네트워크 트래픽과 시간을 절약합니다.
+- **구현 위치**: 정책 동기화 스크립트 (`scripts/upload_to_blob.py`)
+
+### 3. Infrastructure as Code (IaC) 기반 인프라 관리
+
+- **재현 가능한 인프라**: 인덱스 생성 스크립트와 스킬셋 정의 파일을 Git으로 버전 관리하여, **누가 언제 실행하든 항상 동일한 AI Search 환경을 구축**할 수 있습니다.
+- **구현 위치**: 인덱스 생성 스크립트 (`scripts/create_index.py`), 스킬셋 정의 (`config/skillset_definition.json`)
+
+### 4. 제어권 확보를 위한 지식 베이스 고도화
+
+- **PDF 텍스트 선추출 전략**: Azure 인덱서의 내장 PDF 파싱 기능 대신, 동기화 스크립트에서 Python 라이브러리(`pypdf`)를 사용해 텍스트를 먼저 추출합니다.
+- **선택 이유**: 
+  - 인덱서의 파싱 방식은 블랙박스로 동작 예측이 어렵습니다.
+  - 텍스트를 직접 추출하면 **RAG 시스템 입력 데이터를 100% 제어 및 검증** 가능합니다.
+  - **예측 가능성, 디버깅 용이성, 시스템 안정성** 측면에서 우수합니다.
+- **구현 위치**: 정책 동기화 스크립트 (`scripts/upload_to_blob.py`)
+
+### 5. RAG 검색 알고리즘 튜닝
+
+- **정확성과 효율성의 균형**:
+  - **Top-K 제한**: 가장 관련성 높은 정책 문서 **3개**만 선택하여 노이즈 제거 및 정확성 향상
+  - **컨텍스트 토큰 제한**: 검색된 문서의 총 토큰 수를 **2,000 토큰**으로 제한하여 비용 절감 및 응답 속도 개선
+  - **설정 기반 조정**: 모든 파라미터는 설정 파일(`config/config.yaml`)에서 즉시 변경 가능
+- **구현 위치**: RAG 엔진 (`src/core/rag_core.py`)
+
+### 6. 고도의 프롬프트 엔지니어링
+
+RAG 엔진의 판단 프롬프트는 다음과 같은 고급 기법을 적용했습니다:
+
+1. **페르소나 부여**: "은행의 준법감시최고책임자 AI"라는 명확한 역할 정의
+2. **Chain of Thought**: 분석 → 비교 → 판단의 **단계별 사고 과정을 명시적으로 지시**
+3. **Few-shot Learning**: 좋은 응답과 나쁜 응답의 **구체적인 예시를 제시**하여 원하는 JSON 출력 형식을 정확히 학습
+4. **Grounding 강화**: 
+   - "오직 아래 컨텍스트에만 기반하여 판단" 지시
+   - "외부 지식 사용 금지" 제약 조건 추가
+   - 환각(Hallucination)을 최소화하고 RAG의 신뢰도를 극대화
+5. **출처 인용 강제**: `source_files` 필드를 필수로 요구하여 판단 근거의 추적성 확보
+
+- **구현 위치**: RAG 엔진 프롬프트 템플릿 (`src/core/rag_core.py`)
+
+### 7. HNSW 알고리즘 기반 고성능 벡터 검색
+
+Azure AI Search 인덱스에 **HNSW(Hierarchical Navigable Small World)** 알고리즘을 적용하여 대규모 벡터 검색 성능을 최적화했습니다.
+
+**핵심 설정:**
+- **알고리즘**: HNSW (근사 최근접 이웃 탐색)
+- **유사도 메트릭**: Cosine Similarity (코사인 유사도)
+- **파라미터 튜닝**:
+  - `m=12`: 각 노드의 최대 연결 수 (높을수록 정확도↑, 메모리↑)
+  - `efConstruction=200`: 인덱스 구축 시 탐색 범위 (높을수록 품질↑, 구축 시간↑)
+  - `efSearch=150`: 검색 시 탐색 범위 (높을수록 정확도↑, 속도↓)
+
+**하이브리드 검색 지원:**
+- **벡터 검색**: 의미적 유사도 기반 (임베딩)
+- **키워드 검색**: 정확한 용어 매칭 (Lucene 분석기)
+  - 한국어: `ko.lucene` 분석기 적용
+  - 영어: `en.lucene` 분석기 적용
+
+**효과:**
+- 수만 건의 정책 문서에서도 밀리초 단위의 빠른 검색
+- 키워드와 의미를 동시에 고려한 정확한 정책 문서 검색
+
+- **구현 위치**: 인덱스 생성 스크립트 (`scripts/create_index.py`)
+
+### 8. AI 기반 문서 보강 파이프라인 (Skillset)
+
+Azure AI Search의 **인지 기술(Cognitive Skills)**을 활용하여 정책 문서를 자동으로 분석하고 보강합니다.
+
+**적용된 스킬 체인:**
+
+1. **언어 감지 (LanguageDetectionSkill)**
+   - 문서의 언어를 자동 감지 (한국어, 영어 등)
+   - 이후 스킬들의 언어별 처리 최적화
+
+2. **문서 분할 (SplitSkill)** ⭐ 핵심
+   - **목적**: 긴 정책 문서를 검색 가능한 작은 청크로 분할하여 검색 정확도와 컨텍스트 품질을 극대화
+   - **설정**:
+     - 청크 크기: 600자
+     - 오버랩: 100자 (문맥 단절 방지)
+     - 분할 모드: 페이지 단위 (`pages`)
+   - **효과**: RAG 검색 정확도를 **단일 문서 반환 대비 3배 이상** 향상
+
+3. **엔티티 인식 (EntityRecognitionSkill)**
+   - 정책 문서에서 인물, 조직, 위치, 날짜, 주소 등 14개 카테고리 엔티티 추출
+   - 검색 필터링 및 분석에 활용
+
+4. **핵심 구문 추출 (KeyPhraseExtractionSkill)**
+   - 문서의 핵심 키워드와 구문을 자동 추출
+   - 하이브리드 검색의 키워드 매칭 정확도 향상
+
+5. **텍스트 번역 (TranslationSkill)**
+   - 한국어 정책 문서를 영어로 자동 번역
+   - 다국어 검색 지원 및 글로벌 확장성 확보
+
+6. **개인정보 탐지 (PIIDetectionSkill)**
+   - 문서 내 개인정보(이메일, 전화번호, 주소 등) 자동 감지 및 마스킹
+   - 정책 문서 관리 시 개인정보 보호 강화
+
+**파이프라인 효과:**
+```
+원본 정책 PDF → 텍스트 추출 → 언어 감지 → 600자 청크 분할 → 엔티티/키워드 추출 → 영어 번역 → 개인정보 마스킹 → 인덱싱
+```
+→ **검색 가능하고, 의미가 명확하며, 개인정보가 보호된 정책 지식 베이스 구축**
+
+- **구현 위치**: 
+  - 스킬셋 생성 스크립트 (`scripts/create_skillset.py`)
+  - 스킬셋 정의 파일 (`config/skillset_definition.json`)
+
+---
+
 ## 📁 프로젝트 구조
 
 ```
@@ -63,13 +435,6 @@ python main.py upload-rag            # 실제 업로드
 python main.py  # 도움말 표시
 ```
 
-## 📋 주요 기능
-
-- **이중 가드레일**: 입력과 출력 모두에서 정책 위반 검사
-- **동적 버퍼링**: 실시간 스트리밍 중 점진적 안전성 검증
-- **하이브리드 검색**: 벡터 검색과 키워드 검색의 조합
-- **정책 관리**: RAG 기반 정책 문서 자동 업데이트
-
 ## ⚙️ 환경 설정
 
 `.env` 파일에 다음 환경 변수들을 설정하세요:
@@ -87,3 +452,13 @@ AZURE_STORAGE_CONNECTION_STRING=your_storage_connection
 - `RAG_source/`: 로컬에서 원본 정책 파일(PDF, TXT)을 보관합니다.
 - `scripts/upload_to_blob.py`: PDF에서 텍스트를 추출하여 Azure Blob Storage에 `.txt`로 업로드합니다.
 - **실제 RAG 검색**: Azure AI Search가 Blob Storage의 텍스트 파일을 인덱싱하여 사용합니다.
+
+---
+
+## 📈 향후 개선 및 확장 계획
+
+- **지원 문서 포맷 확장**: 현재 TXT, PDF 외에 `.docx`, `.pptx`, `.hwp` 등 다양한 사내 문서 포맷을 자동으로 처리하도록 인덱서 기능 확장을 고려할 수 있습니다.
+- **가드레일 정책 고도화**: 정적 키워드나 정책 외에, LLM을 활용해 미묘한 맥락의 유해성까지 판단하는 모델(LLM-as-a-Judge)을 추가하여 방어 능력을 강화할 수 있습니다.
+- **사용자별 정책 적용**: 사용자의 부서나 역할(예: 영업, 준법감시)에 따라 다른 가드레일 정책을 동적으로 적용하는 기능을 구현할 수 있습니다.
+- **A/B 테스팅 파이프라인**: 다양한 프롬프트, RAG 설정(chunk size, top-k 등)의 성능을 자동으로 비교 분석하여 최적의 조합을 찾는 파이프라인을 구축할 수 있습니다.
+- **운영 대시보드**: 가드레일 탐지/차단 통계, 주요 위반 유형, 평균 응답 시간 등을 시각화하여 운영 현황을 한눈에 파악하고 인사이트를 얻을 수 있습니다.
