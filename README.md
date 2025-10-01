@@ -388,35 +388,6 @@ Azure AI Search의 **인지 기술(Cognitive Skills)**을 활용하여 정책 �
 
 ---
 
-## 📁 프로젝트 구조
-
-```
-ai-guardrail-azure-mvp/
-├── src/                    # 소스 코드
-│   ├── core/              # 핵심 RAG 로직
-│   │   └── rag_core.py    # RAG 파이프라인 및 가드레일 검사
-│   ├── utils/             # 유틸리티 함수들
-│   │   └── streaming_utils.py  # 동적 버퍼링 스트리밍
-│   └── web/               # 웹 애플리케이션
-│       └── app.py         # Streamlit UI
-├── config/                # 설정 파일들
-│   ├── config.yaml        # 애플리케이션 설정
-│   └── config_loader.py   # 설정 로더
-├── scripts/               # 유틸리티 스크립트들
-│   ├── create_index.py    # Azure AI Search 인덱스 생성
-│   ├── create_skillset.py # Azure AI Search 스킬셋 생성
-│   └── upload_to_blob.py  # RAG 소스 파일 업로드
-├── tests/                 # 테스트 파일들
-│   └── test_guardrail.py  # 가드레일 기능 테스트
-├── RAG_source/           # RAG 정책 소스 파일들
-│   ├── bank_policy.txt
-│   └── default_safety_guard.txt
-├── docs/                 # 문서
-├── main.py              # 메인 실행 파일
-├── requirements.txt     # Python 의존성
-└── .env                 # 환경 변수 (git에서 제외)
-```
-
 ## 🤔 개발 과정의 고민 및 이슈
 
 ### 1. 가드레일 LLM 모델 선택 전략
@@ -557,14 +528,34 @@ Phase 3 (트래픽 100만건/월 초과): 비용 최적화 검토
 
 ---
 
-## 📈 향후 개선 및 확장 계획
+## 📁 프로젝트 구조
 
-- **지원 문서 포맷 확장**: 현재 TXT, PDF 외에 `.docx`, `.pptx`, `.hwp` 등 다양한 사내 문서 포맷을 자동으로 처리하도록 인덱서 기능 확장을 고려할 수 있습니다.
-- **가드레일 정책 고도화**: 정적 키워드나 정책 외에, LLM을 활용해 미묘한 맥락의 유해성까지 판단하는 모델(LLM-as-a-Judge)을 추가하여 방어 능력을 강화할 수 있습니다.
-- **사용자별 정책 적용**: 사용자의 부서나 역할(예: 영업, 준법감시)에 따라 다른 가드레일 정책을 동적으로 적용하는 기능을 구현할 수 있습니다.
-- **운영 대시보드**: 가드레일 탐지/차단 통계, 주요 위반 유형, 평균 응답 시간 등을 시각화하여 운영 현황을 한눈에 파악하고 인사이트를 얻을 수 있습니다.
-
----
+```
+ai-guardrail-azure-mvp/
+├── src/                    # 소스 코드
+│   ├── core/              # 핵심 RAG 로직
+│   │   └── rag_core.py    # RAG 파이프라인 및 가드레일 검사
+│   ├── utils/             # 유틸리티 함수들
+│   │   └── streaming_utils.py  # 동적 버퍼링 스트리밍
+│   └── web/               # 웹 애플리케이션
+│       └── app.py         # Streamlit UI
+├── config/                # 설정 파일들
+│   ├── config.yaml        # 애플리케이션 설정
+│   └── config_loader.py   # 설정 로더
+├── scripts/               # 유틸리티 스크립트들
+│   ├── create_index.py    # Azure AI Search 인덱스 생성
+│   ├── create_skillset.py # Azure AI Search 스킬셋 생성
+│   └── upload_to_blob.py  # RAG 소스 파일 업로드
+├── tests/                 # 테스트 파일들
+│   └── test_guardrail.py  # 가드레일 기능 테스트
+├── RAG_source/           # RAG 정책 소스 파일들
+│   ├── bank_policy.txt
+│   └── default_safety_guard.txt
+├── docs/                 # 문서
+├── main.py              # 메인 실행 파일
+├── requirements.txt     # Python 의존성
+└── .env                 # 환경 변수 (git에서 제외)
+```
 
 ## 🚀 실행 방법
 
@@ -613,6 +604,15 @@ AZURE_STORAGE_CONNECTION_STRING=your_storage_connection
 # LangSmith 모니터링 (선택사항)
 LANGSMITH_API_KEY=lsv2_pt_xxxxxxxxxxxxx
 ```
+
+---
+
+## 📈 향후 개선 및 확장 계획
+
+- **지원 문서 포맷 확장**: 현재 TXT, PDF 외에 `.docx`, `.pptx`, `.hwp` 등 다양한 사내 문서 포맷을 자동으로 처리하도록 인덱서 기능 확장을 고려할 수 있습니다.
+- **가드레일 정책 고도화**: 정적 키워드나 정책 외에, LLM을 활용해 미묘한 맥락의 유해성까지 판단하는 모델(LLM-as-a-Judge)을 추가하여 방어 능력을 강화할 수 있습니다.
+- **사용자별 정책 적용**: 사용자의 부서나 역할(예: 영업, 준법감시)에 따라 다른 가드레일 정책을 동적으로 적용하는 기능을 구현할 수 있습니다.
+- **운영 대시보드**: 가드레일 탐지/차단 통계, 주요 위반 유형, 평균 응답 시간 등을 시각화하여 운영 현황을 한눈에 파악하고 인사이트를 얻을 수 있습니다.
 
 ---
 
