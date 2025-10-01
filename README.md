@@ -35,7 +35,7 @@ Azure OpenAI와 Azure AI Search를 활용한 금융 정책 기반 AI 가드레�
 
 ### 핵심 기술
 - **Python 3.10+**: 주 개발 언어
-- **Azure OpenAI**: GPT-4.1 기반 LLM 및 Text Embedding 3 Small
+- **Azure OpenAI**: GPT-4.1-mini 기반 LLM 및 Text Embedding 3 Small
 - **Azure AI Search**: 하이브리드 검색 (벡터 + 키워드) 엔진
 - **Azure Blob Storage**: 정책 문서 저장소
 - **LangChain**: RAG 파이프라인 및 LLM 체인 구성
@@ -77,7 +77,7 @@ graph TB
         end
         
         subgraph "AI 응답 생성"
-            LLM[Azure OpenAI<br/>GPT-4.1 메인 LLM]
+            LLM[Azure OpenAI<br/>GPT-4.1-mini 메인 LLM]
         end
         
         subgraph "출력 검증"
