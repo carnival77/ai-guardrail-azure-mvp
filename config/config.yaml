@@ -2,7 +2,7 @@
 # 비민감 정보만 포함 (민감 정보는 .env 파일 또는 Azure App Settings 사용)
 
 # Azure OpenAI 모델 배포 이름
-azure_openai_chat_deployment_name: "GPT-4.1"
+azure_openai_chat_deployment_name: "GPT-4.1-mini"
 azure_openai_embedding_deployment_name: "text-embedding-3-small"
 azure_openai_api_version: "2024-12-01-preview"
 
