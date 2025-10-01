@@ -2,7 +2,7 @@
 
 Azure OpenAI와 Azure AI Search를 활용한 금융 정책 기반 AI 가드레일 MVP 시스템
 
-[서비스 Link](aiguardrail-fybchkgecpa3guhq.koreacentral-01.azurewebsites.net)
+[서비스 Link](https://aiguardrail-fybchkgecpa3guhq.koreacentral-01.azurewebsites.net/)
 
 ---
 
