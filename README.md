@@ -417,57 +417,6 @@ ai-guardrail-azure-mvp/
 └── .env                 # 환경 변수 (git에서 제외)
 ```
 
-## 🚀 실행 방법
-
-모든 기능은 `main.py`를 통해 통합 실행됩니다:
-
-### 웹 애플리케이션 실행
-```bash
-python main.py app
-```
-
-### 테스트 실행
-```bash
-python main.py test
-```
-
-### 인프라 스크립트 실행
-```bash
-# Azure AI Search 인덱스 생성
-python main.py create-index
-
-# Azure AI Search 스킬셋 생성
-python main.py create-skillset
-
-# RAG 소스 파일 업로드
-python main.py upload-rag --dry-run  # 미리보기
-python main.py upload-rag            # 실제 업로드
-```
-
-### 사용 가능한 명령어 확인
-```bash
-python main.py  # 도움말 표시
-```
-
-## ⚙️ 환경 설정
-
-`.env` 파일에 다음 환경 변수들을 설정하세요:
-
-```env
-# Azure 서비스 설정
-AZURE_OPENAI_API_KEY=your_api_key
-AZURE_OPENAI_ENDPOINT=your_endpoint
-AZURE_SEARCH_ENDPOINT=your_search_endpoint
-AZURE_SEARCH_API_KEY=your_search_key
-AZURE_STORAGE_CONNECTION_STRING=your_storage_connection
-
-# LangSmith 모니터링 (선택사항)
-LANGSMITH_API_KEY=lsv2_pt_xxxxxxxxxxxxx
-```
-
-**참고:** LangSmith 설정은 `config/config.yaml`에서 관리됩니다.
----
-
 ## 🤔 개발 과정의 고민 및 이슈
 
 ### 1. 가드레일 LLM 모델 선택 전략
@@ -614,6 +563,56 @@ Phase 3 (트래픽 100만건/월 초과): 비용 최적화 검토
 - **가드레일 정책 고도화**: 정적 키워드나 정책 외에, LLM을 활용해 미묘한 맥락의 유해성까지 판단하는 모델(LLM-as-a-Judge)을 추가하여 방어 능력을 강화할 수 있습니다.
 - **사용자별 정책 적용**: 사용자의 부서나 역할(예: 영업, 준법감시)에 따라 다른 가드레일 정책을 동적으로 적용하는 기능을 구현할 수 있습니다.
 - **운영 대시보드**: 가드레일 탐지/차단 통계, 주요 위반 유형, 평균 응답 시간 등을 시각화하여 운영 현황을 한눈에 파악하고 인사이트를 얻을 수 있습니다.
+
+---
+
+## 🚀 실행 방법
+
+모든 기능은 `main.py`를 통해 통합 실행됩니다:
+
+### 웹 애플리케이션 실행
+```bash
+python main.py app
+```
+
+### 테스트 실행
+```bash
+python main.py test
+```
+
+### 인프라 스크립트 실행
+```bash
+# Azure AI Search 인덱스 생성
+python main.py create-index
+
+# Azure AI Search 스킬셋 생성
+python main.py create-skillset
+
+# RAG 소스 파일 업로드
+python main.py upload-rag --dry-run  # 미리보기
+python main.py upload-rag            # 실제 업로드
+```
+
+### 사용 가능한 명령어 확인
+```bash
+python main.py  # 도움말 표시
+```
+
+## ⚙️ 환경 설정
+
+`.env` 파일에 다음 환경 변수들을 설정하세요:
+
+```env
+# Azure 서비스 설정
+AZURE_OPENAI_API_KEY=your_api_key
+AZURE_OPENAI_ENDPOINT=your_endpoint
+AZURE_SEARCH_ENDPOINT=your_search_endpoint
+AZURE_SEARCH_API_KEY=your_search_key
+AZURE_STORAGE_CONNECTION_STRING=your_storage_connection
+
+# LangSmith 모니터링 (선택사항)
+LANGSMITH_API_KEY=lsv2_pt_xxxxxxxxxxxxx
+```
 
 ---
 
