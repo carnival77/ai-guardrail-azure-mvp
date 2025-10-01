@@ -2,6 +2,8 @@
 
 Azure OpenAI와 Azure AI Search를 활용한 금융 정책 기반 AI 가드레일 MVP 시스템
 
+[서비스 Link](aiguardrail-fybchkgecpa3guhq.koreacentral-01.azurewebsites.net)
+
 ---
 
 ## 🌟 프로젝트 개요
@@ -258,7 +260,6 @@ AWS Bedrock Guardrails의 검증된 패턴을 차용하여, **안전성과 응�
 - 유해 콘텐츠 노출 전 100% 차단
 - 자연스러운 대화 흐름 유지
 
-- **구현 위치**: 스트리밍 유틸리티 모듈 (`src/utils/streaming_utils.py`)
 - **참고**: [AWS Bedrock - Streaming output protection](https://aws.amazon.com/ko/blogs/tech/protecting-llm-streaming-output-with-amazon-bedrock-guardrails/)
 
 ### 2. 운영 편의성을 고려한 정책 관리 자동화
@@ -271,8 +272,6 @@ AWS Bedrock Guardrails의 검증된 패턴을 차용하여, **안전성과 응�
 
 **효과:** 코드 재배포 불필요
 
-- **구현 위치**: `scripts/upload_to_blob.py`
-
 ### 3. Infrastructure as Code (IaC) 기반 인프라 관리
 
 **사용 이유:** Azure Portal의 수동 설정은 **재현 불가능하고 버전 관리가 어렵습니다**. 인프라도 코드로 관리해야 합니다.
@@ -283,8 +282,6 @@ AWS Bedrock Guardrails의 검증된 패턴을 차용하여, **안전성과 응�
 
 **효과:** 개발/스테이징/운영 환경을 **일관되게 복제** 가능, 설정 변경 이력 추적 가능
 
-- **구현 위치**: `scripts/create_index.py`, `config/skillset_definition.json`
-
 ### 4. 제어권 확보를 위한 지식 베이스 고도화
 
 - **PDF 텍스트 선추출 전략**: Azure 인덱서의 내장 PDF 파싱 기능 대신, 동기화 스크립트에서 Python 라이브러리(`pypdf`)를 사용해 텍스트를 먼저 추출합니다.
@@ -292,7 +289,6 @@ AWS Bedrock Guardrails의 검증된 패턴을 차용하여, **안전성과 응�
   - 인덱서의 파싱 방식은 블랙박스로 동작 예측이 어렵습니다.
   - 텍스트를 직접 추출하면 **RAG 시스템 입력 데이터를 100% 제어 및 검증** 가능합니다.
   - **예측 가능성, 디버깅 용이성, 시스템 안정성** 측면에서 우수합니다.
-- **구현 위치**: 정책 동기화 스크립트 (`scripts/upload_to_blob.py`)
 
 ### 5. RAG 검색 알고리즘 튜닝
 
@@ -300,7 +296,6 @@ AWS Bedrock Guardrails의 검증된 패턴을 차용하여, **안전성과 응�
   - **Top-K 제한**: 가장 관련성 높은 정책 문서 **3개**만 선택하여 노이즈 제거 및 정확성 향상
   - **컨텍스트 토큰 제한**: 검색된 문서의 총 토큰 수를 **2,000 토큰**으로 제한하여 비용 절감 및 응답 속도 개선
   - **설정 기반 조정**: 모든 파라미터는 설정 파일(`config/config.yaml`)에서 즉시 변경 가능
-- **구현 위치**: RAG 엔진 (`src/core/rag_core.py`)
 
 ### 6. 고도의 프롬프트 엔지니어링
 
@@ -315,8 +310,6 @@ RAG 엔진의 판단 프롬프트는 다음과 같은 고급 기법을 적용했
    - 환각(Hallucination)을 최소화하고 RAG의 신뢰도를 극대화
 5. **출처 인용 강제**: `source_files` 필드를 필수로 요구하여 판단 근거의 추적성 확보
 
-- **구현 위치**: RAG 엔진 프롬프트 템플릿 (`src/core/rag_core.py`)
-
 ### 7. HNSW 알고리즘 기반 고성능 벡터 검색
 
 Azure AI Search 인덱스에 **HNSW(Hierarchical Navigable Small World)** 알고리즘을 적용하여 대규모 벡터 검색 성능을 최적화했습니다.
@@ -330,8 +323,6 @@ Azure AI Search 인덱스에 **HNSW(Hierarchical Navigable Small World)** 알고
   - 키워드: Lucene 분석기 (한국어 `ko.lucene`, 영어 `en.lucene`)
 
 **효과:** 대규모 문서에서도 **초고속 검색**과 **높은 정확도** 동시 달성
-
-- **구현 위치**: `scripts/create_index.py`
 
 ### 8. AI 기반 문서 보강 파이프라인 (Skillset)
 
@@ -356,8 +347,6 @@ Azure AI Search의 **인지 기술(Cognitive Skills)**을 활용하여 정책 �
 
 **전체 효과:** 원본 PDF → AI 6단계 처리 → **검색 가능하고, 의미 명확하며, 보안이 강화된** 지식 베이스
 
-- **구현 위치**: `scripts/create_skillset.py`, `config/skillset_definition.json`
-
 ### 9. LangSmith 모니터링 및 관찰성
 
 **사용 이유:** LLM 애플리케이션의 **성능 최적화와 디버깅**을 위해 전체 파이프라인 가시성이 필요합니다.
@@ -367,20 +356,8 @@ Azure AI Search의 **인지 기술(Cognitive Skills)**을 활용하여 정책 �
 - **성능 분석**: 각 단계별 실행 시간 및 병목 지점 식별
 - **비용 추적**: 토큰 사용량 및 예상 비용 실시간 측정
 
-**설정 방법:**
-```yaml
-# config.yaml
-langsmith_enabled: true
-langsmith_project_name: "ai-guardrail-mvp"
-```
-```env
-# .env
-LANGSMITH_API_KEY=lsv2_pt_xxxxxxxxxxxxx
-```
-
 **효과:** 디버깅 시간 **83% 단축**, 전체 시스템 가시성 확보, 프롬프트 A/B 테스트 가능
 
-- **구현 위치**: `src/core/rag_core.py`, `config/config.yaml`
 - **대시보드**: [LangSmith Console](https://smith.langchain.com/)
 
 ---
