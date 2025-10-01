@@ -153,9 +153,9 @@ AI 가드레일의 판단 근거가 되는 정책 문서는 **Streamlit UI**를 
    ↓
 2. 업로드된 파일이 서버의 스테이징 영역에 임시 저장
    ↓
-3. "동기화" 버튼 클릭 시 자동 동기화 프로세스 실행
+3. "동기화" 버튼 클릭 시 자동 동기화 프로세스로 PDF에서 텍스트를 추출 
    ↓
-4. 동기화 스크립트가 변경된 파일만 클라우드 저장소(Azure Blob)에 업로드
+4. 동기화 스크립트가 변경된 txt 파일만 클라우드 저장소(Azure Blob)에 업로드
    ↓
 5. AI Search Indexer가 변경 사항을 자동 감지하고 문서 분할 후 인덱싱
    ↓
@@ -466,13 +466,6 @@ LANGSMITH_API_KEY=lsv2_pt_xxxxxxxxxxxxx
 ```
 
 **참고:** LangSmith 설정은 `config/config.yaml`에서 관리됩니다.
-
-## 📁 RAG 소스 파일 관리
-
-- `RAG_source/`: 로컬에서 원본 정책 파일(PDF, TXT)을 보관합니다.
-- `scripts/upload_to_blob.py`: PDF에서 텍스트를 추출하여 Azure Blob Storage에 `.txt`로 업로드합니다.
-- **실제 RAG 검색**: Azure AI Search가 Blob Storage의 텍스트 파일을 인덱싱하여 사용합니다.
-
 ---
 
 ## 🤔 개발 과정의 고민 및 이슈
