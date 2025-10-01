@@ -54,7 +54,52 @@ Azure OpenAI와 Azure AI Search를 활용한 금융 정책 기반 AI 가드레�
 
 ## 🏛️ 시스템 아키텍처
 
-### 전체 구성도
+### 핵심 기술 스택 구성도
+
+```mermaid
+graph TB
+    subgraph "🎨 Frontend"
+        ST[Streamlit<br/>웹 UI]
+    end
+
+    subgraph "🧠 AI Layer"
+        GPT[Azure OpenAI<br/>GPT-4.1-mini]
+        EMB[Text Embedding<br/>3-small]
+    end
+
+    subgraph "🔍 RAG Engine"
+        LC[LangChain<br/>RAG Pipeline]
+        AIS[Azure AI Search<br/>하이브리드 검색]
+    end
+
+    subgraph "💾 Storage"
+        BLOB[Azure Blob<br/>정책 문서]
+    end
+
+    subgraph "🚀 DevOps"
+        GHA[GitHub Actions<br/>CI/CD]
+        AWA[Azure Web App<br/>배포]
+        LS[LangSmith<br/>모니터링]
+    end
+
+    ST --> LC
+    LC --> GPT
+    LC --> EMB
+    LC --> AIS
+    AIS --> BLOB
+    GHA --> AWA
+    AWA --> ST
+    LC -.추적.-> LS
+
+    style GPT fill:#e8f5e9
+    style AIS fill:#e3f2fd
+    style ST fill:#fff3e0
+    style LC fill:#f3e5f5
+```
+
+---
+
+### 전체 구성도 (상세)
 
 ```mermaid
 graph TB
