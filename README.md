@@ -24,6 +24,7 @@ Azure OpenAI와 Azure AI Search를 활용한 정부공인 정책 기반 기업�
     - [전체 구성도 (상세)](#전체-구성도-상세)
     - [정책 관리 흐름 (Policy Management Flow)](#정책-관리-흐름-policy-management-flow)
     - [가드레일 동작 흐름 (Guardrail Runtime Flow)](#가드레일-동작-흐름-guardrail-runtime-flow)
+  - [✨ 데모 영상](#-데모-영상)
   - [✨ 핵심 기술 포인트](#-핵심-기술-포인트)
     - [1. RAG 기반 이중 가드레일 및 동적 버퍼링](#1-rag-기반-이중-가드레일-및-동적-버퍼링)
     - [2. RAG 검색 알고리즘 튜닝](#2-rag-검색-알고리즘-튜닝)
@@ -432,6 +433,14 @@ sequenceDiagram
    ```
 
 ---
+
+## ✨ 데모 영상
+
+- [가드레일 유해성 요청 차단 및 근거 제시](https://youtu.be/Id6BNpojOu0)
+- [안전 응답 및 진단 정보 표시](https://youtu.be/u1CnOy0dA1k)
+- [차단 및 정상응답 시 진단 정보 표시 온오프](https://youtu.be/teDY967kmbU)
+- [정책 업로드 및 동기화 기능](https://youtu.be/bt_AboNG-Tc)
+- [Langsmith 모니터링](https://youtu.be/XveMcU5hlmI)
 
 ## ✨ 핵심 기술 포인트
 
