@@ -100,14 +100,14 @@ Azure OpenAI와 AI Search 기반의 RAG(검색 증강 생성) 기술을 활용�
 5. **HNSW 알고리즘 기반 고성능 벡터 검색** : 대규모 벡터 검색 성능 최적화
 6. 문서 분할 (SplitSkill) 스킬 Azure AI Search에 적용 : 대용량 문서 청킹/중첩 통해 문맥 단절 방지하여, RAG 검색 정확도 향상
 7. 프롬프트 엔지니어링 고도화 :
-   1. 페르소나 부여
-   2. Chain of Thought (단계별 사고)
-   3. Few-shot Learning (예시 학습) 등의 기법 적용
+   - 페르소나 부여
+   - Chain of Thought (단계별 사고)
+   - Few-shot Learning (예시 학습) 등의 기법 적용
 8. 진단 정보 표시 : RAG 기반 입/출력 진단 정보 화면 표시 on/off 옵션 제공
 9. LangSmith 모니터링 :
-   1. 모든 LLM 호출 및 체인 실행 자동 추적
-   2. 단계별 성능 분석
-   3. 토큰 사용량 추적
+   - 모든 LLM 호출 및 체인 실행 자동 추적
+   - 단계별 성능 분석
+   - 토큰 사용량 추적
 
 ## 🌟 프로젝트 개요
 
