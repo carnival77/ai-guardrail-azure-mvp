@@ -438,9 +438,9 @@ sequenceDiagram
 
 - [가드레일 유해성 요청 차단 및 근거 제시](https://youtu.be/Id6BNpojOu0)
 - [안전 응답 및 진단 정보 표시](https://youtu.be/u1CnOy0dA1k)
-- [차단 및 정상응답 시 진단 정보 표시 온오프](https://youtu.be/teDY967kmbU)
+- [차단 및 정상 응답 시 진단 정보 표시 온오프](https://youtu.be/teDY967kmbU)
 - [정책 업로드 및 동기화 기능](https://youtu.be/bt_AboNG-Tc)
-- [Langsmith 모니터링](https://youtu.be/XveMcU5hlmI)
+- [Langsmith 모니터링](https://youtu.be/wc4bNmf9vjI)
 
 ## ✨ 핵심 기술 포인트
 
