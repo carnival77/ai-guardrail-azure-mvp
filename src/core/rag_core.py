@@ -192,9 +192,11 @@ def check_guardrail(text_to_evaluate: str) -> Dict[str, Any]:
     try:
         # 1. Retriever를 호출하여 문서 검색
         retrieved_docs = retriever.invoke(text_to_evaluate)
-        
+
         # 2. 검색된 문서 수(top-k) 및 토큰 수 제한, 원본 Document 객체는 보존
         limited_context = limit_docs_with_metadata(retrieved_docs)
+
+        print(f"[DEBUG rag_core] limited_context: {limited_context}")
 
         # 3. LLM에 전달할 프롬프트 데이터 준비
         prompt_inputs = {
@@ -207,25 +209,26 @@ def check_guardrail(text_to_evaluate: str) -> Dict[str, Any]:
 
         end_time = time.time()
         elapsed_time = end_time - start_time
-        
+
         # 5. 최종 결과에 성능 및 근거 데이터(원본 Document 객체) 추가
         response_json["elapsed_time"] = elapsed_time
         response_json["source_documents"] = limited_context["documents"]
-        
+
         # [DEBUG] LLM이 반환한 source_files 확인
-        # print(f"[DEBUG rag_core] LLM source_files: {response_json.get('source_files', [])}")
-        # print(f"[DEBUG rag_core] Retrieved doc count: {len(limited_context['documents'])}")
-        # for idx, doc in enumerate(limited_context['documents']):
-        #     print(f"[DEBUG rag_core] Doc {idx}: metadata_storage_name = {doc.metadata.get('metadata_storage_name', 'N/A')}")
-        #     print(f"[DEBUG rag_core] Doc {idx}: metadata_storage_path = {doc.metadata.get('metadata_storage_path', 'N/A')[:100]}...")
-        #     print(f"[DEBUG rag_core] Doc {idx}: content preview = {doc.page_content[:100]}...")
-        
+        print(f"[DEBUG rag_core] LLM source_files: {response_json.get('source_files', [])}")
+        print(f"[DEBUG rag_core] Retrieved doc count: {len(limited_context['documents'])}")
+        print(f"[DEBUG rag_core] source_documents: {response_json['source_documents']}")
+        for idx, doc in enumerate(limited_context['documents']):
+            print(f"[DEBUG rag_core] Doc {idx}: metadata_storage_name = {doc.metadata.get('metadata_storage_name', 'N/A')}")
+            print(f"[DEBUG rag_core] Doc {idx}: metadata_storage_path = {doc.metadata.get('metadata_storage_path', 'N/A')[:100]}...")
+            print(f"[DEBUG rag_core] Doc {idx}: content preview = {doc.page_content[:100]}...")
+
         return response_json
-    
+
     except Exception as e:
         end_time = time.time()
         return {
-            "decision": "ERROR", 
+            "decision": "ERROR",
             "reason": f"An unexpected error occurred: {e}",
             "elapsed_time": end_time - start_time,
             "source_documents": []
